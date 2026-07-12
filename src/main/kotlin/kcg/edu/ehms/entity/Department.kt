@@ -2,6 +2,10 @@ package kcg.edu.ehms.entity
 
 import jakarta.persistence.*
 
+/**
+ * Department entity representing a hospital department in the EHMS system.
+ * Stores department information and maintains many-to-many relationship with doctors.
+ */
 @Entity
 @Table(name = "departments")
 class Department(

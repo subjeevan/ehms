@@ -10,6 +10,10 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
+/**
+ * Custom user details service for loading user information from the database.
+ * Loads user credentials and roles for Spring Security authentication.
+ */
 @Service
 class CustomUserDetailsService(
     private val userRepository: UserRepository
@@ -17,6 +21,11 @@ class CustomUserDetailsService(
 
     private val log = LoggerFactory.getLogger(javaClass)
 
+    /**
+     * Loads user details by username for authentication.
+     * Retrieves user from database and converts roles to granted authorities.
+     * Throws UsernameNotFoundException if user is not found or has no roles.
+     */
     @Transactional(readOnly = true)
     override fun loadUserByUsername(
         username: String

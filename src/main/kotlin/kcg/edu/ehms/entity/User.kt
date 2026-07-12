@@ -3,6 +3,10 @@ package kcg.edu.ehms.entity
 import jakarta.persistence.*
 import java.time.LocalDateTime
 
+/**
+ * User entity representing a system user account in the EHMS system.
+ * Stores user credentials, enabled status, and role assignments.
+ */
 @Entity
 @Table(name = "users")
 class User(

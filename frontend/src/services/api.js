@@ -60,6 +60,7 @@ export const authApi = {
 
 export const dashboardApi = {
   summary: () => apiFetch('/dashboard/summary'),
+  earnings: () => apiFetch('/dashboard/earnings'),
 }
 
 export const patientApi = {
@@ -69,6 +70,7 @@ export const patientApi = {
   },
   get: (id) => apiFetch(`/patients/${id}`),
   create: (data) => apiFetch('/patients', { method: 'POST', body: JSON.stringify(data) }),
+  createWithBilling: (data) => apiFetch('/patients/with-billing', { method: 'POST', body: JSON.stringify(data) }),
   update: (id, data) => apiFetch(`/patients/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   remove: (id) => apiFetch(`/patients/${id}`, { method: 'DELETE' }),
 }
@@ -100,3 +102,53 @@ export const userApi = {
   setStatus: (id, enabled) => apiFetch(`/users/${id}/status`, { method: 'PATCH', body: JSON.stringify({ enabled }) }),
   remove: (id) => apiFetch(`/users/${id}`, { method: 'DELETE' }),
 }
+
+export const chargeApi = {
+  list: () => apiFetch('/setup/charges'),
+  get: (patientType) => apiFetch(`/setup/charges/${patientType}`),
+  update: (patientType, data) => apiFetch(`/setup/charges/${patientType}`, { method: 'PUT', body: JSON.stringify(data) }),
+}
+
+// Excel export utility
+export function exportPatientsToExcel(patients, filename = 'patients.xlsx') {
+  if (typeof window === 'undefined' || !window.XLSX) {
+    console.error('XLSX library not loaded. Please include <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js"></script>')
+    return
+  }
+
+  const data = patients.map(patient => ({
+    'ID': patient.id,
+    'Full Name': patient.fullName,
+    'Gender': patient.gender,
+    'Date of Birth': patient.dateOfBirth,
+    'Contact Number': patient.contactNumber,
+    'Address': patient.address,
+    'Patient Type': patient.patientType,
+    'Amount Paid (¥)': patient.amountPaid || 0,
+    'Registered At': patient.registeredAt,
+    'Insurance Provider': patient.insuranceDetail?.provider || '-',
+    'Policy Number': patient.insuranceDetail?.policyNumber || '-',
+  }))
+
+  const ws = window.XLSX.utils.json_to_sheet(data)
+  const wb = window.XLSX.utils.book_new()
+  window.XLSX.utils.book_append_sheet(wb, ws, 'Patients')
+  
+  // Set column widths
+  ws['!cols'] = [
+    { wch: 8 },   // ID
+    { wch: 20 },  // Full Name
+    { wch: 10 },  // Gender
+    { wch: 12 },  // Date of Birth
+    { wch: 15 },  // Contact Number
+    { wch: 25 },  // Address
+    { wch: 12 },  // Patient Type
+    { wch: 15 },  // Amount Paid
+    { wch: 18 },  // Registered At
+    { wch: 20 },  // Insurance Provider
+    { wch: 15 },  // Policy Number
+  ]
+
+  window.XLSX.writeFile(wb, filename)
+}
+

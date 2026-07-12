@@ -39,7 +39,7 @@ data class PatientRequest(
     val dateOfBirth: LocalDate? = null,
 
     @field:NotBlank(message = "Contact number is required")
-    @field:Pattern(regexp = "^[0-9+()\\-\\s]{7,25}$", message = "Contact number format is invalid")
+    @field:Pattern(regexp = "^[0-9]{10,25}$", message = "Contact number format is invalid")
     val contactNumber: String = "",
 
     @field:NotBlank(message = "Address is required")
@@ -70,5 +70,6 @@ data class PatientResponse(
     val address: String,
     val patientType: PatientType,
     val registeredAt: LocalDateTime,
-    val insuranceDetail: InsuranceDetailResponse?
+    val insuranceDetail: InsuranceDetailResponse?,
+    val amountPaid: BigDecimal = BigDecimal.ZERO
 )

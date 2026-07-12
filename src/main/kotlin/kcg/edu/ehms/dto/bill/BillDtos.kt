@@ -1,5 +1,6 @@
 package kcg.edu.ehms.dto.bill
 
+import kcg.edu.ehms.entity.BillType
 import kcg.edu.ehms.entity.PaymentStatus
 import jakarta.validation.constraints.DecimalMin
 import jakarta.validation.constraints.NotNull
@@ -24,5 +25,7 @@ data class BillResponse(
     val patientName: String,
     val amount: BigDecimal,
     val billDate: LocalDate,
-    val paymentStatus: PaymentStatus
+    val paymentStatus: PaymentStatus,
+    val billType: BillType = BillType.OTHER,
+    val description: String? = null
 )

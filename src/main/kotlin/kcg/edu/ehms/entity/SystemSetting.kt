@@ -3,6 +3,10 @@ package kcg.edu.ehms.entity
 import jakarta.persistence.*
 import java.time.LocalDateTime
 
+/**
+ * SystemSetting entity for storing system-wide configuration parameters.
+ * Allows dynamic management of application settings without code changes.
+ */
 @Entity
 @Table(name = "system_settings")
 class SystemSetting(

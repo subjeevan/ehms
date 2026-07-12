@@ -15,6 +15,15 @@ export default function PatientDetailModal({ patient, onClose }) {
 
   if (!patient) return null
   const insurance = patient.insuranceDetail
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('ja-JP', {
+      style: 'currency',
+      currency: 'JPY',
+      minimumFractionDigits: 2,
+    }).format(amount || 0)
+  }
+
   return (
     <div className="modal-backdrop" role="presentation" onMouseDown={(event) => {
       if (event.target === event.currentTarget) onClose()
@@ -34,6 +43,7 @@ export default function PatientDetailModal({ patient, onClose }) {
           <div><dt>Patient type</dt><dd><span className={`badge type-${patient.patientType.toLowerCase()}`}>{patient.patientType}</span></dd></div>
           <div className="wide"><dt>Address</dt><dd>{patient.address}</dd></div>
           <div className="wide"><dt>Registered</dt><dd>{new Date(patient.registeredAt).toLocaleString()}</dd></div>
+          <div><dt>Amount Paid</dt><dd><strong style={{ fontSize: '1.1rem', color: '#28a745' }}>{formatCurrency(patient.amountPaid)}</strong></dd></div>
         </dl>
         {insurance && (
           <section className="insurance-summary">

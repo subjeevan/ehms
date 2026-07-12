@@ -3,7 +3,7 @@ import FormField from './FormField'
 import Alert from './Alert'
 import { emptyPatient, normalizePatient, toPatientPayload, validatePatient } from '../utils/patientValidation'
 
-export default function PatientForm({ initialPatient = null, onSubmit, submitLabel = 'Save patient', busy = false, successMessage = '', onSuccessClear = undefined }) {
+export default function PatientForm({ initialPatient = null, onSubmit, submitLabel = 'Save patient', busy = false, successMessage = '', onSuccessClear = undefined, onPatientTypeChange = null, selectedCharge = null, formatCurrency = null }) {
   const [values, setValues] = useState(() => initialPatient ? normalizePatient(initialPatient) : structuredClone(emptyPatient))
   const [touched, setTouched] = useState({})
   const [serverErrors, setServerErrors] = useState({})
@@ -16,6 +16,9 @@ export default function PatientForm({ initialPatient = null, onSubmit, submitLab
   const setField = (name, value) => {
     setValues((current) => ({ ...current, [name]: value }))
     setServerErrors((current) => ({ ...current, [name]: undefined }))
+    if (name === 'patientType' && onPatientTypeChange) {
+      onPatientTypeChange(value)
+    }
   }
 
   const setInsuranceField = (name, value) => {
@@ -90,6 +93,12 @@ export default function PatientForm({ initialPatient = null, onSubmit, submitLab
           <textarea value={values.address} onChange={(e) => setField('address', e.target.value)} onBlur={() => markTouched('address')} maxLength={300} rows={3} />
         </FormField>
       </div>
+
+      {selectedCharge && formatCurrency && values.patientType && (
+        <div style={{ backgroundColor: '#e7f3ff', border: '1px solid #b3d9ff', borderRadius: '4px', padding: '12px 16px', marginBottom: '16px', color: '#004085' }}>
+          <strong>Registration Charge:</strong> {formatCurrency(selectedCharge.amount)}
+        </div>
+      )}
 
       {values.patientType === 'INSURANCE' && (
         <section className="nested-section">

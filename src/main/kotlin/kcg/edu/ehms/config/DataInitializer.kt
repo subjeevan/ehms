@@ -10,7 +10,13 @@ import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
 import java.time.LocalDate
+import java.time.LocalDateTime
 
+/**
+ * Initializes the application with default data on startup.
+ * Creates default roles (ADMIN, USER), default user accounts (admin, user),
+ * sample departments, doctors, patients, and default patient type charges for demonstration purposes.
+ */
 @Component
 class DataInitializer(
     private val roleRepository: RoleRepository,
@@ -19,10 +25,15 @@ class DataInitializer(
     private val doctorRepository: DoctorRepository,
     private val patientRepository: PatientRepository,
     private val settingRepository: SystemSettingRepository,
+    private val patientTypeChargeRepository: PatientTypeChargeRepository,
     private val passwordEncoder: PasswordEncoder
 ) : ApplicationRunner {
     private val log = LoggerFactory.getLogger(javaClass)
 
+    /**
+     * Runs on application startup to initialize default data in the database.
+     * Only creates data if the relevant tables are empty, preventing duplicate entries.
+     */
     @Transactional
     override fun run(args: ApplicationArguments) {
         val adminRole = roleRepository.findByName("ROLE_ADMIN")
@@ -93,7 +104,9 @@ class DataInitializer(
                 patient = general,
                 amount = BigDecimal("2500.00"),
                 billDate = LocalDate.now(),
-                paymentStatus = PaymentStatus.PAID
+                paymentStatus = PaymentStatus.PAID,
+                billType = BillType.CONSULTATION,
+                description = "Initial consultation"
             )
             patientRepository.save(general)
 
@@ -141,6 +154,42 @@ class DataInitializer(
                     description = "Default application timezone"
                 )
             )
+        }
+
+        if (patientTypeChargeRepository.count() == 0L) {
+            val now = LocalDateTime.now()
+            patientTypeChargeRepository.save(
+                PatientTypeCharge(
+                    patientType = PatientType.GENERAL,
+                    amount = BigDecimal("200.00"),
+                    enabled = true,
+                    createdAt = now,
+                    updatedAt = now
+                )
+            )
+            log.info("Created default charge configuration for GENERAL patient type: 200.00")
+
+            patientTypeChargeRepository.save(
+                PatientTypeCharge(
+                    patientType = PatientType.PAYING,
+                    amount = BigDecimal("500.00"),
+                    enabled = true,
+                    createdAt = now,
+                    updatedAt = now
+                )
+            )
+            log.info("Created default charge configuration for PAYING patient type: 500.00")
+
+            patientTypeChargeRepository.save(
+                PatientTypeCharge(
+                    patientType = PatientType.INSURANCE,
+                    amount = BigDecimal("100.00"),
+                    enabled = true,
+                    createdAt = now,
+                    updatedAt = now
+                )
+            )
+            log.info("Created default charge configuration for INSURANCE patient type: 100.00")
         }
     }
 }

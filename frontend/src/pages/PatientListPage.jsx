@@ -7,10 +7,10 @@ import Pagination from '../components/Pagination'
 import PatientDetailModal from '../components/PatientDetailModal'
 import useDebounce from '../hooks/useDebounce'
 import { useAuth } from '../context/AuthContext'
-import { patientApi } from '../services/api'
+import { patientApi, exportPatientsToExcel } from '../services/api'
 
 const columns = [
-  ['id', 'ID'], ['fullName', 'Patient'], ['gender', 'Gender'], ['dateOfBirth', 'DOB'], ['patientType', 'Type'], ['registeredAt', 'Registered'],
+  ['id', 'ID'], ['fullName', 'Patient'], ['gender', 'Gender'], ['dateOfBirth', 'DOB'], ['patientType', 'Type'], ['amountPaid', 'Amount Paid (¥)'], ['registeredAt', 'Registered'],
 ]
 
 export default function PatientListPage() {
@@ -27,6 +27,7 @@ export default function PatientListPage() {
   const [selected, setSelected] = useState(null)
   const [deleting, setDeleting] = useState(null)
   const [deleteBusy, setDeleteBusy] = useState(false)
+  const [exporting, setExporting] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -65,6 +66,37 @@ export default function PatientListPage() {
     }
   }
 
+  const handleExport = async () => {
+    setExporting(true)
+    try {
+      let allPatients = []
+      let currentPage = 0
+      let hasMore = true
+      
+      while (hasMore) {
+        const result = await patientApi.list({ page: currentPage, size: 100, search, sortBy, sortDir })
+        allPatients = [...allPatients, ...result.content]
+        hasMore = currentPage < result.totalPages - 1
+        currentPage++
+      }
+
+      const filename = `patients_${new Date().toISOString().split('T')[0]}.xlsx`
+      exportPatientsToExcel(allPatients, filename)
+    } catch (err) {
+      setError('Failed to export patients: ' + err.message)
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('ja-JP', {
+      style: 'currency',
+      currency: 'JPY',
+      minimumFractionDigits: 2,
+    }).format(amount || 0)
+  }
+
   return (
     <div className="page-stack">
       <div className="page-header">
@@ -75,7 +107,12 @@ export default function PatientListPage() {
       <section className="card table-card">
         <div className="table-toolbar">
           <label className="search-box"><span>⌕</span><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by ID, name, contact, or address…" /></label>
-          <label className="page-size">Rows <select value={size} onChange={(e) => setSize(Number(e.target.value))}><option>10</option><option>20</option><option>50</option></select></label>
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+            <button className="button secondary" onClick={handleExport} disabled={exporting || !data?.content?.length}>
+              {exporting ? 'Exporting...' : '📥 Export to Excel'}
+            </button>
+            <label className="page-size">Rows <select value={size} onChange={(e) => setSize(Number(e.target.value))}><option>10</option><option>20</option><option>50</option></select></label>
+          </div>
         </div>
         {loading && !data ? <Loading label="Loading patient records…" /> : (
           <>
@@ -92,6 +129,7 @@ export default function PatientListPage() {
                       <td>{patient.gender}</td>
                       <td>{patient.dateOfBirth}</td>
                       <td><span className={`badge type-${patient.patientType.toLowerCase()}`}>{patient.patientType}</span></td>
+                      <td><strong>{formatCurrency(patient.amountPaid)}</strong></td>
                       <td>{new Date(patient.registeredAt).toLocaleDateString()}</td>
                       <td><div className="row-actions">
                         <button type="button" className="text-button" onClick={() => setSelected(patient)}>View</button>
@@ -100,7 +138,7 @@ export default function PatientListPage() {
                       </div></td>
                     </tr>
                   ))}
-                  {!loading && data?.content?.length === 0 && <tr><td colSpan="7" className="empty-cell">No patients matched your search.</td></tr>}
+                  {!loading && data?.content?.length === 0 && <tr><td colSpan="8" className="empty-cell">No patients matched your search.</td></tr>}
                 </tbody>
               </table>
             </div>

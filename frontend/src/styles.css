@@ -198,7 +198,33 @@ td small { color: var(--muted); margin-top: .2rem; }
 .tag.disabled { color: #8f2632; background: #fff0f1; }
 .user-list-info { display: flex; gap: .7rem; }
 
-.login-page { min-height: 100vh; display: grid; grid-template-columns: 1.15fr .85fr; background: #fff; }
+/* Earnings Cards */
+.earnings-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+.earnings-card { overflow: hidden; padding: 1.2rem; }
+.earnings-card::before { content: ""; position: absolute; inset: 0 0 auto; height: 4px; background: linear-gradient(90deg, #FF6B6B, #4ECDC4); }
+.earnings-card.total-earnings::before { background: linear-gradient(90deg, #FFD93D, #6BCB77); }
+.earnings-details { margin-top: 1rem; }
+.earnings-total { font-size: 1.8rem; margin-bottom: .8rem; }
+.earnings-total strong { display: block; color: #0f6b78; font-weight: 900; }
+.earnings-breakdown { display: flex; flex-direction: column; gap: .5rem; margin-top: .8rem; }
+.earnings-item { display: flex; justify-content: space-between; align-items: center; padding: .6rem .8rem; background: #f4f8f8; border-radius: 7px; font-size: .82rem; }
+.earnings-item span { color: var(--muted); }
+.earnings-item strong { color: #0f6b78; font-weight: 750; }
+.earnings-stats { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; margin-top: .6rem; }
+.stat-item { display: flex; flex-direction: column; padding: .7rem; background: #f4f8f8; border-radius: 7px; text-align: center; }
+.stat-item span { color: var(--muted); font-size: .72rem; font-weight: 700; }
+.stat-item strong { display: block; margin-top: .3rem; font-size: 1.4rem; color: #0f6b78; }
+.date-label { display: block; color: var(--muted); font-size: .72rem; margin-top: .3rem; }
+
+@media (max-width: 1100px) {
+  .earnings-grid { grid-template-columns: 1fr 1fr; }
+  .earnings-grid .earnings-card:last-child { grid-column: span 2; }
+}
+
+@media (max-width: 860px) {
+  .earnings-grid { grid-template-columns: 1fr; }
+  .earnings-grid .earnings-card:last-child { grid-column: auto; }
+}
 .login-visual { position: relative; display: flex; align-items: center; overflow: hidden; padding: clamp(2rem, 7vw, 6rem); color: #fff; background: linear-gradient(145deg, #0c4f5a, #12383f); }
 .login-visual::before, .login-visual::after { content: ""; position: absolute; border: 55px solid rgba(255,255,255,.045); border-radius: 50%; }
 .login-visual::before { width: 380px; height: 380px; right: -160px; top: -100px; }

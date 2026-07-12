@@ -11,6 +11,10 @@ import org.springframework.stereotype.Service
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
+/**
+ * Service for generating and managing JWT tokens for authentication.
+ * Creates JWT tokens with user identity and roles based on Spring Security authentication.
+ */
 @Service
 class JwtTokenService(
     private val jwtEncoder: JwtEncoder,
@@ -19,11 +23,19 @@ class JwtTokenService(
     private val expirationMinutes: Long
 ) {
 
+    /**
+     * Data class representing an issued JWT token with its value and expiration time.
+     */
     data class IssuedToken(
         val value: String,
         val expiresAt: Instant
     )
 
+    /**
+     * Issues a new JWT token for the authenticated user.
+     * Embeds user identity, roles, and expiration time in the token.
+     * Uses HMAC-SHA256 algorithm for signing.
+     */
     fun issue(authentication: Authentication): IssuedToken {
         val now = Instant.now()
 
@@ -32,11 +44,6 @@ class JwtTokenService(
             ChronoUnit.MINUTES
         )
 
-        /*
-         * GrantedAuthority.authority may be treated as String?
-         * by Kotlin. mapNotNull removes any null or blank values
-         * before sorting.
-         */
         val roles: List<String> = authentication.authorities
             .mapNotNull { grantedAuthority ->
                 grantedAuthority.authority

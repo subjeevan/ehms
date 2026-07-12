@@ -9,11 +9,18 @@ import org.springframework.security.web.access.AccessDeniedHandler
 import org.springframework.stereotype.Component
 import tools.jackson.databind.json.JsonMapper
 
+/**
+ * Custom access denied handler for forbidden requests.
+ * Returns a JSON error response when a user lacks necessary permissions for an action.
+ */
 @Component
 class JsonAccessDeniedHandler(
     private val jsonMapper: JsonMapper
 ) : AccessDeniedHandler {
 
+    /**
+     * Sends a 403 Forbidden response with JSON error details when access is denied.
+     */
     override fun handle(
         request: HttpServletRequest,
         response: HttpServletResponse,

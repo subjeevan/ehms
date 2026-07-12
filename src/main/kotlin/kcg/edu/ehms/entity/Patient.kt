@@ -4,6 +4,11 @@ import jakarta.persistence.*
 import java.time.LocalDate
 import java.time.LocalDateTime
 
+/**
+ * Patient entity representing a patient record in the EHMS system.
+ * Stores comprehensive patient information including personal details, contact info,
+ * patient type, insurance details, and associated bills.
+ */
 @Entity
 @Table(
     name = "patients",

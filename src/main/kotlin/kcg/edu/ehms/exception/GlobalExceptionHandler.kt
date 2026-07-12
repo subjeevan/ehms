@@ -13,11 +13,20 @@ import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
 
+/**
+ * Global exception handler for the entire EHMS application.
+ * Catches and handles various exceptions, returning consistent JSON error responses.
+ * Provides proper HTTP status codes and logging for different error scenarios.
+ */
 @RestControllerAdvice
 class GlobalExceptionHandler {
 
     private val log = LoggerFactory.getLogger(javaClass)
 
+    /**
+     * Handles request validation failures (missing/invalid fields).
+     * Returns 400 Bad Request with field-level error details.
+     */
     @ExceptionHandler(MethodArgumentNotValidException::class)
     fun handleValidation(
         exception: MethodArgumentNotValidException,
@@ -40,6 +49,10 @@ class GlobalExceptionHandler {
         )
     }
 
+    /**
+     * Handles JSR-303 bean validation constraint violations.
+     * Returns 400 Bad Request with constraint violation details.
+     */
     @ExceptionHandler(ConstraintViolationException::class)
     fun handleConstraintViolation(
         exception: ConstraintViolationException,
@@ -59,6 +72,10 @@ class GlobalExceptionHandler {
         )
     }
 
+    /**
+     * Handles malformed request bodies (invalid JSON, etc).
+     * Returns 400 Bad Request with a generic message about malformed content.
+     */
     @ExceptionHandler(HttpMessageNotReadableException::class)
     fun handleUnreadableMessage(
         exception: HttpMessageNotReadableException,
@@ -77,6 +94,10 @@ class GlobalExceptionHandler {
         )
     }
 
+    /**
+     * Handles custom business validation exceptions.
+     * Returns 400 Bad Request with optional field-level error details.
+     */
     @ExceptionHandler(BusinessValidationException::class)
     fun handleBusinessValidation(
         exception: BusinessValidationException,
@@ -91,6 +112,10 @@ class GlobalExceptionHandler {
         )
     }
 
+    /**
+     * Handles resource not found exceptions.
+     * Returns 404 Not Found when a requested resource doesn't exist.
+     */
     @ExceptionHandler(ResourceNotFoundException::class)
     fun handleNotFound(
         exception: ResourceNotFoundException,
@@ -104,6 +129,10 @@ class GlobalExceptionHandler {
         )
     }
 
+    /**
+     * Handles duplicate entry exceptions.
+     * Returns 409 Conflict when attempting to create a duplicate record.
+     */
     @ExceptionHandler(DuplicateEntryException::class)
     fun handleDuplicate(
         exception: DuplicateEntryException,
@@ -117,6 +146,10 @@ class GlobalExceptionHandler {
         )
     }
 
+    /**
+     * Handles authentication failures.
+     * Returns 401 Unauthorized and logs the authentication attempt.
+     */
     @ExceptionHandler(AuthenticationException::class)
     fun handleAuthentication(
         exception: AuthenticationException,
@@ -136,6 +169,10 @@ class GlobalExceptionHandler {
         )
     }
 
+    /**
+     * Handles access denied exceptions (insufficient permissions).
+     * Returns 403 Forbidden and logs the access denial.
+     */
     @ExceptionHandler(AccessDeniedException::class)
     fun handleAccessDenied(
         exception: AccessDeniedException,
@@ -155,6 +192,10 @@ class GlobalExceptionHandler {
         )
     }
 
+    /**
+     * Handles database constraint violations.
+     * Returns 409 Conflict when database constraints are violated.
+     */
     @ExceptionHandler(DataIntegrityViolationException::class)
     fun handleDataIntegrityViolation(
         exception: DataIntegrityViolationException,
@@ -174,6 +215,10 @@ class GlobalExceptionHandler {
         )
     }
 
+    /**
+     * Catch-all handler for unexpected exceptions.
+     * Returns 500 Internal Server Error and logs the full exception stack trace.
+     */
     @ExceptionHandler(Exception::class)
     fun handleUnexpected(
         exception: Exception,
@@ -192,6 +237,9 @@ class GlobalExceptionHandler {
         )
     }
 
+    /**
+     * Helper method to create a consistent error response with proper HTTP status and message formatting.
+     */
     private fun createErrorResponse(
         status: HttpStatus,
         message: String,

@@ -2,6 +2,10 @@ package kcg.edu.ehms.entity
 
 import jakarta.persistence.*
 
+/**
+ * Doctor entity representing a healthcare professional in the EHMS system.
+ * Stores doctor information including specialization and department assignments.
+ */
 @Entity
 @Table(name = "doctors")
 class Doctor(

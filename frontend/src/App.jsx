@@ -9,6 +9,7 @@ import PatientListPage from './pages/PatientListPage'
 import PatientEditPage from './pages/PatientEditPage'
 import PatientUpdatePage from './pages/PatientUpdatePage'
 import SetupPage from './pages/SetupPage'
+import ChargeSetupPage from './pages/setup/ChargeSetupPage'
 import ChangePasswordPage from './pages/ChangePasswordPage'
 import UserManagementPage from './pages/UserManagementPage'
 import AccessDeniedPage from './pages/AccessDeniedPage'
@@ -31,6 +32,7 @@ export default function App() {
             <Route path="/patients/:id/edit" element={<PatientEditPage />} />
             <Route path="/patients/update" element={<PatientUpdatePage />} />
             <Route path="/setup" element={<SetupPage />} />
+            <Route path="/setup/charges" element={<ChargeSetupPage />} />
             <Route path="/users" element={<UserManagementPage />} />
           </Route>
 

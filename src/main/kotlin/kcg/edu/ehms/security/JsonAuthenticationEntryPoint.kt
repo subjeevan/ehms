@@ -9,11 +9,18 @@ import org.springframework.security.web.AuthenticationEntryPoint
 import org.springframework.stereotype.Component
 import tools.jackson.databind.json.JsonMapper
 
+/**
+ * Custom authentication entry point for handling unauthorized access.
+ * Returns a JSON error response when authentication fails or token is missing/expired.
+ */
 @Component
 class JsonAuthenticationEntryPoint(
     private val jsonMapper: JsonMapper
 ) : AuthenticationEntryPoint {
 
+    /**
+     * Sends a 401 Unauthorized response with JSON error details when authentication fails.
+     */
     override fun commence(
         request: HttpServletRequest,
         response: HttpServletResponse,

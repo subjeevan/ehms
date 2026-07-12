@@ -2,6 +2,10 @@ package kcg.edu.ehms.entity
 
 import jakarta.persistence.*
 
+/**
+ * Role entity representing a user role/permission in the EHMS system.
+ * Defines different access levels such as ADMIN, USER, etc.
+ */
 @Entity
 @Table(name = "roles")
 class Role(

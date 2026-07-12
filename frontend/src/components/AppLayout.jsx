@@ -27,6 +27,7 @@ export default function AppLayout() {
   }
 
   const navClass = ({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`
+  const subNavClass = ({ isActive }) => `sidebar-link sub-nav-link ${isActive ? 'active' : ''}`
 
   return (
     <div className="app-shell">
@@ -48,6 +49,7 @@ export default function AppLayout() {
               <NavLink to="/patients/update" className={navClass}><span className="nav-icon">✎</span>Patient Info Update</NavLink>
               <span className="nav-label">Administration</span>
               <NavLink to="/setup" className={navClass}><span className="nav-icon">⚙</span>Setup</NavLink>
+              <NavLink to="/setup/charges" className={subNavClass}><span className="nav-icon">  </span>Charge Setup</NavLink>
               <NavLink to="/users" className={navClass}><span className="nav-icon">♙</span>User Management</NavLink>
             </>
           )}

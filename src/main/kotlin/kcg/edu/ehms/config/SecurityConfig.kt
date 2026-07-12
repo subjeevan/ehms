@@ -28,6 +28,11 @@ import java.nio.charset.StandardCharsets
 import javax.crypto.SecretKey
 import javax.crypto.spec.SecretKeySpec
 
+/**
+ * Security configuration for the EHMS application.
+ * Configures JWT-based authentication, CORS policies, session management, and security filters.
+ * Enables method-level security with @PreAuthorize annotations.
+ */
 @Configuration
 @EnableMethodSecurity
 class SecurityConfig(
@@ -36,13 +41,23 @@ class SecurityConfig(
     @Value("\${app.jwt.secret}") private val jwtSecret: String,
     @Value("\${app.cors.allowed-origins}") private val allowedOrigins: String
 ) {
+    /**
+     * Creates BCrypt password encoder with strength 12 for secure password hashing.
+     */
     @Bean
     fun passwordEncoder(): PasswordEncoder = BCryptPasswordEncoder(12)
 
+    /**
+     * Provides the authentication manager for Spring Security.
+     */
     @Bean
     fun authenticationManager(configuration: AuthenticationConfiguration): AuthenticationManager =
         configuration.authenticationManager
 
+    /**
+     * Generates HMAC-SHA256 secret key for JWT signing.
+     * Validates that the secret is at least 32 bytes long.
+     */
     @Bean
     fun jwtSecretKey(): SecretKey {
         require(jwtSecret.toByteArray(StandardCharsets.UTF_8).size >= 32) {
@@ -51,18 +66,28 @@ class SecurityConfig(
         return SecretKeySpec(jwtSecret.toByteArray(StandardCharsets.UTF_8), "HmacSHA256")
     }
 
+    /**
+     * Creates JWT encoder using HMAC-SHA256 algorithm and the secret key.
+     */
     @Bean
     fun jwtEncoder(secretKey: SecretKey): JwtEncoder =
         NimbusJwtEncoder.withSecretKey(secretKey)
             .algorithm(MacAlgorithm.HS256)
             .build()
 
+    /**
+     * Creates JWT decoder using HMAC-SHA256 algorithm and the secret key.
+     */
     @Bean
     fun jwtDecoder(secretKey: SecretKey): JwtDecoder =
         NimbusJwtDecoder.withSecretKey(secretKey)
             .macAlgorithm(MacAlgorithm.HS256)
             .build()
 
+    /**
+     * Configures JWT authentication converter to extract roles from JWT claims.
+     * Maps the 'roles' claim to granted authorities without a prefix.
+     */
     @Bean
     fun jwtAuthenticationConverter(): JwtAuthenticationConverter {
         val authoritiesConverter = JwtGrantedAuthoritiesConverter().apply {
@@ -74,6 +99,11 @@ class SecurityConfig(
         }
     }
 
+    /**
+     * Configures the main security filter chain.
+     * Disables CSRF, enables CORS, uses stateless session, allows login endpoint,
+     * and requires JWT authentication for all other requests.
+     */
     @Bean
     fun securityFilterChain(
         http: HttpSecurity,
@@ -102,6 +132,10 @@ class SecurityConfig(
         return http.build()
     }
 
+    /**
+     * Configures CORS policies allowing specified origins with common HTTP methods.
+     * Sets maximum age for preflight requests to 3600 seconds.
+     */
     @Bean
     fun corsConfigurationSource(): CorsConfigurationSource {
         val configuration = CorsConfiguration().apply {

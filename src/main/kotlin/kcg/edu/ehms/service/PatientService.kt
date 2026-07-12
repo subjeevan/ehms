@@ -1,13 +1,14 @@
 package kcg.edu.ehms.service
 
+import kcg.edu.ehms.dto.bill.BillResponse
+import kcg.edu.ehms.dto.charge.PatientRegistrationResponse
 import kcg.edu.ehms.dto.common.PageResponse
 import kcg.edu.ehms.dto.patient.*
-import kcg.edu.ehms.entity.InsuranceDetail
-import kcg.edu.ehms.entity.Patient
-import kcg.edu.ehms.entity.PatientType
+import kcg.edu.ehms.entity.*
 import kcg.edu.ehms.exception.BusinessValidationException
 import kcg.edu.ehms.exception.DuplicateEntryException
 import kcg.edu.ehms.exception.ResourceNotFoundException
+import kcg.edu.ehms.repository.BillRepository
 import kcg.edu.ehms.repository.InsuranceDetailRepository
 import kcg.edu.ehms.repository.PatientRepository
 import kcg.edu.ehms.specification.PatientSpecifications
@@ -16,11 +17,14 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.LocalDate
 
 @Service
 class PatientService(
     private val patientRepository: PatientRepository,
-    private val insuranceDetailRepository: InsuranceDetailRepository
+    private val insuranceDetailRepository: InsuranceDetailRepository,
+    private val billRepository: BillRepository,
+    private val patientTypeChargeService: PatientTypeChargeService
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
     private val allowedSorts = setOf("id", "fullName", "gender", "dateOfBirth", "patientType", "registeredAt")
@@ -33,6 +37,70 @@ class PatientService(
         val saved = patientRepository.save(patient)
         log.info("Patient {} created by {}", saved.id, actor)
         return saved.toResponse()
+    }
+
+    @Transactional
+    fun createWithBilling(request: PatientRequest, actor: String): PatientRegistrationResponse {
+        validateInsurance(request)
+        val patient = Patient()
+        applyRequest(patient, request)
+        val savedPatient = patientRepository.save(patient)
+        log.info("Patient {} created by {}", savedPatient.id, actor)
+
+        var bill: Bill? = null
+        val chargeAmount = patientTypeChargeService.tryGetChargeForPatientType(savedPatient.patientType)
+
+        if (chargeAmount != null) {
+            bill = Bill(
+                patient = savedPatient,
+                amount = chargeAmount,
+                billDate = LocalDate.now(),
+                paymentStatus = PaymentStatus.PENDING,
+                billType = BillType.REGISTRATION,
+                description = "Patient registration charge - ${savedPatient.patientType}"
+            )
+            val savedBill = billRepository.save(bill)
+            savedPatient.bills.add(savedBill)
+            patientRepository.save(savedPatient)
+            log.info(
+                "Created registration bill {} for patient {} with amount {}",
+                savedBill.id,
+                savedPatient.id,
+                chargeAmount
+            )
+        } else {
+            log.info(
+                "Registration billing skipped for patient {} because {} charge is disabled",
+                savedPatient.id,
+                savedPatient.patientType
+            )
+        }
+
+        val patientResponse = savedPatient.toResponse()
+        val billResponse = bill?.let {
+            BillResponse(
+                id = it.id!!,
+                patientId = it.patient!!.id!!,
+                patientName = it.patient!!.fullName,
+                amount = it.amount,
+                billDate = it.billDate,
+                paymentStatus = it.paymentStatus,
+                billType = it.billType,
+                description = it.description
+            )
+        }
+
+        val message = if (billResponse != null) {
+            "Patient registered and registration bill created successfully"
+        } else {
+            "Patient registered successfully. No registration bill was created because automatic billing is disabled."
+        }
+
+        return PatientRegistrationResponse(
+            patient = patientResponse,
+            bill = billResponse,
+            message = message
+        )
     }
 
     @Transactional(readOnly = true)
@@ -119,17 +187,24 @@ class PatientService(
         }
     }
 
-    private fun Patient.toResponse() = PatientResponse(
-        id = id!!,
-        fullName = fullName,
-        gender = gender,
-        dateOfBirth = dateOfBirth,
-        contactNumber = contactNumber,
-        address = address,
-        patientType = patientType,
-        registeredAt = registeredAt,
-        insuranceDetail = insuranceDetail?.let {
-            InsuranceDetailResponse(it.id!!, it.provider, it.policyNumber, it.coverageAmount, it.expiryDate)
-        }
-    )
+    private fun Patient.toResponse(): PatientResponse {
+        val amountPaid = bills
+            .filter { it.paymentStatus == PaymentStatus.PAID }
+            .fold(BigDecimal.ZERO) { acc, bill -> acc + bill.amount }
+
+        return PatientResponse(
+            id = id!!,
+            fullName = fullName,
+            gender = gender,
+            dateOfBirth = dateOfBirth,
+            contactNumber = contactNumber,
+            address = address,
+            patientType = patientType,
+            registeredAt = registeredAt,
+            insuranceDetail = insuranceDetail?.let {
+                InsuranceDetailResponse(it.id!!, it.provider, it.policyNumber, it.coverageAmount, it.expiryDate)
+            },
+            amountPaid = amountPaid
+        )
+    }
 }
