@@ -18,7 +18,7 @@ import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
-
+import java.math.BigDecimal
 @Service
 class PatientService(
     private val patientRepository: PatientRepository,
@@ -51,11 +51,17 @@ class PatientService(
         val chargeAmount = patientTypeChargeService.tryGetChargeForPatientType(savedPatient.patientType)
 
         if (chargeAmount != null) {
+            val paymentStatus = when (savedPatient.patientType) {
+                PatientType.INSURANCE -> PaymentStatus.PENDING
+                PatientType.GENERAL,
+                PatientType.PAYING -> PaymentStatus.PAID
+            }
+
             bill = Bill(
                 patient = savedPatient,
                 amount = chargeAmount,
                 billDate = LocalDate.now(),
-                paymentStatus = PaymentStatus.PENDING,
+                paymentStatus = paymentStatus,
                 billType = BillType.REGISTRATION,
                 description = "Patient registration charge - ${savedPatient.patientType}"
             )
