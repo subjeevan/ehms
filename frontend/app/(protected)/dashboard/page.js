@@ -7,63 +7,269 @@ import {
   Chart as ChartJS,
   Legend,
   LinearScale,
-  Tooltip
+  Tooltip,
 } from "chart.js";
 import { Bar } from "react-chartjs-2";
 import { dashboardApi } from "@/lib/api";
 import Alert from "@/components/Alert";
 import Loading from "@/components/Loading";
+import { useAuth } from "@/context/AuthContext";
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Tooltip,
+  Legend,
+);
+
+const patientTypes = [
+  { key: "GENERAL", label: "General" },
+  { key: "PAYING", label: "Paying" },
+  { key: "INSURANCE", label: "Insurance" },
+];
+
+const emptyGenderCount = {
+  male: 0,
+  female: 0,
+  total: 0,
+};
 
 const emptySummary = {
   totalPatients: 0,
-  generalPatients: 0,
-  payingPatients: 0,
-  insurancePatients: 0,
-  malePatients: 0,
-  femalePatients: 0,
-  monthlyRegistrations: []
+
+  paying: { ...emptyGenderCount },
+  insurance: { ...emptyGenderCount },
+  general: { ...emptyGenderCount },
+
+  todayPatients: 0,
+  todayPaying: { ...emptyGenderCount },
+  todayInsurance: { ...emptyGenderCount },
+  todayGeneral: { ...emptyGenderCount },
+
+  monthlyRegistrations: [],
 };
 
+function toNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : 0;
+}
+
+function normalizeGenderCount(value) {
+  const male = toNumber(value?.male);
+  const female = toNumber(value?.female);
+
+  return {
+    male,
+    female,
+    total: toNumber(value?.total ?? male + female),
+  };
+}
+
+function normalizeSummary(value) {
+  const todayPaying = normalizeGenderCount(
+    value?.todayPaying ?? value?.paying,
+  );
+
+  const todayInsurance = normalizeGenderCount(
+    value?.todayInsurance ?? value?.insurance,
+  );
+
+  const todayGeneral = normalizeGenderCount(
+    value?.todayGeneral ?? value?.general,
+  );
+
+  return {
+    totalPatients: toNumber(value?.totalPatients),
+
+    paying: normalizeGenderCount(value?.paying),
+    insurance: normalizeGenderCount(value?.insurance),
+    general: normalizeGenderCount(value?.general),
+
+    todayPatients: toNumber(
+      value?.todayPatients ??
+        todayPaying.total + todayInsurance.total + todayGeneral.total,
+    ),
+    todayPaying,
+    todayInsurance,
+    todayGeneral,
+
+    monthlyRegistrations: Array.isArray(value?.monthlyRegistrations)
+      ? value.monthlyRegistrations
+      : [],
+  };
+}
+
+function normalizeEarningsByType(items) {
+  const values = {
+    GENERAL: 0,
+    PAYING: 0,
+    INSURANCE: 0,
+  };
+
+  if (Array.isArray(items)) {
+    items.forEach((item) => {
+      if (Object.prototype.hasOwnProperty.call(values, item?.patientType)) {
+        values[item.patientType] = toNumber(item.amount);
+      }
+    });
+  }
+
+  return values;
+}
+
+function normalizeEarningsSection(section) {
+  return {
+    total: toNumber(section?.total),
+    byType: normalizeEarningsByType(section?.earnings),
+    date: section?.date || "",
+    month: section?.month || "",
+    paidCount: toNumber(section?.paidCount),
+    pendingCount: toNumber(section?.pendingCount),
+  };
+}
+
+function normalizeEarnings(value) {
+  return {
+    today: normalizeEarningsSection(value?.today),
+    thisMonth: normalizeEarningsSection(value?.thisMonth),
+    total: normalizeEarningsSection(value?.total),
+  };
+}
+
+function formatCurrency(value) {
+  return new Intl.NumberFormat("ja-JP", {
+    style: "currency",
+    currency: "JPY",
+    maximumFractionDigits: 2,
+  }).format(toNumber(value));
+}
+
+function EarningsBreakdown({ values }) {
+  return (
+    <div className="earnings-type-grid">
+      {patientTypes.map(({ key, label }) => (
+        <div className="earnings-type-item" key={key}>
+          <span>{label}</span>
+          <strong>{formatCurrency(values?.[key])}</strong>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function DashboardPage() {
+  const { ready, isAdmin } = useAuth();
   const [summary, setSummary] = useState(emptySummary);
   const [earnings, setEarnings] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!ready) {
+      return undefined;
+    }
+
     let active = true;
-    Promise.allSettled([dashboardApi.summary(), dashboardApi.earnings()])
-      .then(([summaryResult, earningsResult]) => {
-        if (!active) return;
-        if (summaryResult.status === "fulfilled") {
-          setSummary({ ...emptySummary, ...summaryResult.value });
+
+    async function loadDashboard() {
+      setLoading(true);
+      setError("");
+
+      const requests = [dashboardApi.summary()];
+
+      // Normal USER accounts never call the ADMIN-only earnings API.
+      if (isAdmin) {
+        requests.push(dashboardApi.earnings());
+      }
+
+      const results = await Promise.allSettled(requests);
+
+      if (!active) {
+        return;
+      }
+
+      const messages = [];
+      const summaryResult = results[0];
+
+      if (summaryResult.status === "fulfilled") {
+        setSummary(normalizeSummary(summaryResult.value));
+      } else {
+        setSummary(emptySummary);
+        messages.push(
+          summaryResult.reason?.message ||
+            "Could not load dashboard patient data.",
+        );
+      }
+
+      if (isAdmin) {
+        const earningsResult = results[1];
+
+        if (earningsResult?.status === "fulfilled") {
+          setEarnings(normalizeEarnings(earningsResult.value));
         } else {
-          setError(summaryResult.reason.message);
+          setEarnings(null);
+          messages.push(
+            earningsResult?.reason?.message ||
+              "Could not load dashboard earnings.",
+          );
         }
-        if (earningsResult.status === "fulfilled") {
-          setEarnings(earningsResult.value);
-        }
-      })
-      .finally(() => active && setLoading(false));
-    return () => { active = false; };
-  }, []);
+      } else {
+        // Revenue is completely hidden for normal users.
+        setEarnings(null);
+      }
+
+      setError(messages.join(" "));
+      setLoading(false);
+    }
+
+    loadDashboard();
+
+    return () => {
+      active = false;
+    };
+  }, [ready, isAdmin]);
+
+  const patientCards = useMemo(
+    () => [
+      {
+        label: "Paying patients",
+        type: "paying",
+        values: summary.todayPaying,
+      },
+      {
+        label: "Insurance patients",
+        type: "insurance",
+        values: summary.todayInsurance,
+      },
+      {
+        label: "General patients",
+        type: "general",
+        values: summary.todayGeneral,
+      },
+    ],
+    [summary],
+  );
 
   const chartData = useMemo(() => {
-    const rows = summary.monthlyRegistrations || [];
-    return {
-      labels: rows.map((item) => item.month || item.label),
-      datasets: [{
-        label: "Patient registrations",
-        data: rows.map((item) => item.count || item.total || 0),
-        backgroundColor: "rgba(15, 107, 120, .78)",
-        borderRadius: 7
-      }]
-    };
-  }, [summary]);
+    const rows = summary.monthlyRegistrations;
 
-  if (loading) return <Loading label="Loading dashboard..." />;
+    return {
+      labels: rows.map((item) => item.month),
+      datasets: [
+        {
+          label: "Patient registrations",
+          data: rows.map((item) => toNumber(item.count)),
+          backgroundColor: "rgba(15, 107, 120, .78)",
+          borderRadius: 7,
+        },
+      ],
+    };
+  }, [summary.monthlyRegistrations]);
+
+  if (!ready || loading) {
+    return <Loading label="Loading dashboard..." />;
+  }
 
   return (
     <div className="page-stack">
@@ -71,9 +277,12 @@ export default function DashboardPage() {
         <div>
           <span className="eyebrow">Operations overview</span>
           <h1>Dashboard</h1>
-          <p>Live patient and registration summary.</p>
+          <p>Live patient, registration and revenue summary.</p>
         </div>
-        <span className="live-pill"><span /> Live data</span>
+
+        <span className="live-pill">
+          <span /> Live data
+        </span>
       </header>
 
       {error && <Alert type="error">{error}</Alert>}
@@ -84,48 +293,100 @@ export default function DashboardPage() {
           <strong>{summary.totalPatients}</strong>
           <small>Complete hospital patient records</small>
         </div>
+
         <div className="hero-stat-symbol">+</div>
       </section>
 
+      <div className="section-heading dashboard-section-heading">
+        <div>
+          <span className="eyebrow">Today</span>
+          <h2>Today's patient count</h2>
+        </div>
+
+        <span className="live-pill">
+          Total today: {summary.todayPatients}
+        </span>
+      </div>
+
       <section className="summary-grid">
-        {[
-          ["Paying patients", summary.payingPatients, "paying"],
-          ["Insurance patients", summary.insurancePatients, "insurance"],
-          ["General patients", summary.generalPatients, "general"]
-        ].map(([label, count, type]) => (
-          <article className={`card summary-card ${type}`} key={label}>
+        {patientCards.map(({ label, type, values }) => (
+          <article
+            className={`card summary-card ${type}`}
+            key={type}
+          >
             <div className="summary-card-top">
               <span className="muted">{label}</span>
-              <strong>{count}</strong>
+              <strong>{values.total}</strong>
             </div>
+
             <div className="gender-split">
-              <div><span>Male</span><strong>{summary.malePatients || 0}</strong></div>
-              <div><span>Female</span><strong>{summary.femalePatients || 0}</strong></div>
+              <div>
+                <span>Male</span>
+                <strong>{values.male}</strong>
+              </div>
+
+              <div>
+                <span>Female</span>
+                <strong>{values.female}</strong>
+              </div>
             </div>
           </article>
         ))}
       </section>
 
-      {earnings && (
-        <section className="earnings-grid">
-          <article className="card earnings-card total-earnings">
-            <span className="eyebrow">Revenue</span>
-            <h2>Total earnings</h2>
-            <div className="earnings-total">
-              <strong>¥{earnings.totalEarnings || 0}</strong>
+      {isAdmin && earnings && (
+        <>
+          <div className="section-heading dashboard-section-heading">
+            <div>
+              <span className="eyebrow">Admin only</span>
+              <h2>Revenue overview</h2>
             </div>
-          </article>
-          <article className="card earnings-card">
-            <span className="eyebrow">Today</span>
-            <h2>Daily earnings</h2>
-            <div className="earnings-total"><strong>¥{earnings.todayEarnings || 0}</strong></div>
-          </article>
-          <article className="card earnings-card">
-            <span className="eyebrow">Month</span>
-            <h2>Monthly earnings</h2>
-            <div className="earnings-total"><strong>¥{earnings.monthEarnings || 0}</strong></div>
-          </article>
-        </section>
+          </div>
+
+          <section className="earnings-grid">
+            <article className="card earnings-card total-earnings">
+              <span className="eyebrow">Revenue</span>
+              <h2>Total earnings</h2>
+
+              <div className="earnings-total">
+                <strong>{formatCurrency(earnings.total.total)}</strong>
+              </div>
+
+              <EarningsBreakdown values={earnings.total.byType} />
+
+              <small>
+                Paid bills: {earnings.total.paidCount} · Pending bills:{" "}
+                {earnings.total.pendingCount}
+              </small>
+            </article>
+
+            <article className="card earnings-card">
+              <span className="eyebrow">Today</span>
+              <h2>Daily earnings</h2>
+
+              <div className="earnings-total">
+                <strong>{formatCurrency(earnings.today.total)}</strong>
+              </div>
+
+              <EarningsBreakdown values={earnings.today.byType} />
+
+              <small>{earnings.today.date}</small>
+            </article>
+
+            <article className="card earnings-card">
+              <span className="eyebrow">Month</span>
+              <h2>Monthly earnings</h2>
+
+              <div className="earnings-total">
+                <strong>{formatCurrency(earnings.thisMonth.total)}</strong>
+              </div>
+
+              <EarningsBreakdown values={earnings.thisMonth.byType} />
+
+              <small>{earnings.thisMonth.month}</small>
+            </article>
+          </section>
+        </>
       )}
 
       <section className="card chart-card">
@@ -135,13 +396,26 @@ export default function DashboardPage() {
             <h2>Monthly patients</h2>
           </div>
         </div>
+
         <div className="chart-wrapper">
           <Bar
             data={chartData}
             options={{
               responsive: true,
               maintainAspectRatio: false,
-              plugins: { legend: { display: false } }
+              plugins: {
+                legend: {
+                  display: false,
+                },
+              },
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  ticks: {
+                    precision: 0,
+                  },
+                },
+              },
             }}
           />
         </div>

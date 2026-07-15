@@ -264,3 +264,45 @@ td small { color: var(--muted); margin-top: .2rem; }
   .tabs button { flex: 1; }
   .modal-card { padding: 1rem; }
 }
+/* Add these rules at the END of frontend/app/globals.css */
+
+.dashboard-section-heading {
+  margin-bottom: 0;
+}
+
+.earnings-type-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin: 1rem 0;
+}
+
+.earnings-type-item {
+  min-width: 0;
+  padding: 0.65rem;
+  border-radius: 9px;
+  background: #f2f7f7;
+}
+
+.earnings-type-item span,
+.earnings-type-item strong {
+  display: block;
+}
+
+.earnings-type-item span {
+  margin-bottom: 0.25rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.earnings-type-item strong {
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  font-size: 0.86rem;
+}
+
+@media (max-width: 640px) {
+  .earnings-type-grid {
+    grid-template-columns: 1fr;
+  }
+}

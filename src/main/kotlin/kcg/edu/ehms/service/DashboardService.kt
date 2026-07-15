@@ -13,6 +13,7 @@ import kcg.edu.ehms.entity.Gender
 import kcg.edu.ehms.entity.PatientType
 import kcg.edu.ehms.entity.PaymentStatus
 import kcg.edu.ehms.repository.BillRepository
+import kcg.edu.ehms.repository.PatientCountProjection
 import kcg.edu.ehms.repository.PatientRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -26,26 +27,47 @@ class DashboardService(
     private val billRepository: BillRepository
 ) {
 
+    private val dashboardPatientTypes = listOf(
+        PatientType.GENERAL,
+        PatientType.PAYING,
+        PatientType.INSURANCE
+    )
+
     @Transactional(readOnly = true)
     fun summary(): DashboardSummaryResponse {
-        val groupedCounts = patientRepository
-            .countGroupedByTypeAndGender()
-            .associate {
-                (it.getPatientType() to it.getGender()) to it.getCount()
-            }
+        val allTimeCounts = toCountMap(
+            patientRepository.countGroupedByTypeAndGender()
+        )
 
-        fun countFor(patientType: PatientType): GenderCount {
-            return GenderCount(
-                male = groupedCounts[patientType to Gender.MALE] ?: 0L,
-                female = groupedCounts[patientType to Gender.FEMALE] ?: 0L
+        val today = LocalDate.now()
+        val todayStart = today.atStartOfDay()
+        val tomorrowStart = today.plusDays(1).atStartOfDay()
+
+        val todayCounts = toCountMap(
+            patientRepository.countGroupedByTypeAndGenderBetween(
+                todayStart,
+                tomorrowStart
             )
-        }
+        )
+
+        val paying = countFor(allTimeCounts, PatientType.PAYING)
+        val insurance = countFor(allTimeCounts, PatientType.INSURANCE)
+        val general = countFor(allTimeCounts, PatientType.GENERAL)
+
+        val todayPaying = countFor(todayCounts, PatientType.PAYING)
+        val todayInsurance = countFor(todayCounts, PatientType.INSURANCE)
+        val todayGeneral = countFor(todayCounts, PatientType.GENERAL)
 
         return DashboardSummaryResponse(
             totalPatients = patientRepository.count(),
-            paying = countFor(PatientType.PAYING),
-            insurance = countFor(PatientType.INSURANCE),
-            general = countFor(PatientType.GENERAL),
+            paying = paying,
+            insurance = insurance,
+            general = general,
+            todayPatients =
+                todayPaying.total + todayInsurance.total + todayGeneral.total,
+            todayPaying = todayPaying,
+            todayInsurance = todayInsurance,
+            todayGeneral = todayGeneral,
             monthlyRegistrations = calculateMonthlyRegistrations()
         )
     }
@@ -59,6 +81,24 @@ class DashboardService(
             today = calculateDailyEarnings(today),
             thisMonth = calculateMonthlyEarnings(monthStart, today),
             total = calculateTotalEarnings()
+        )
+    }
+
+    private fun toCountMap(
+        rows: List<PatientCountProjection>
+    ): Map<Pair<PatientType, Gender>, Long> {
+        return rows.associate {
+            (it.getPatientType() to it.getGender()) to it.getCount()
+        }
+    }
+
+    private fun countFor(
+        groupedCounts: Map<Pair<PatientType, Gender>, Long>,
+        patientType: PatientType
+    ): GenderCount {
+        return GenderCount(
+            male = groupedCounts[patientType to Gender.MALE] ?: 0L,
+            female = groupedCounts[patientType to Gender.FEMALE] ?: 0L
         )
     }
 
@@ -142,20 +182,27 @@ class DashboardService(
         )
     }
 
+    /**
+     * Always returns GENERAL, PAYING and INSURANCE rows.
+     * A missing patient type is returned with amount 0.
+     */
     private fun calculateEarnings(
         bills: List<Bill>
     ): List<EarningsByPatientType> {
-        return bills
+        val totalsByType = bills
             .groupBy { it.patient?.patientType }
-            .map { (patientType, patientBills) ->
-                EarningsByPatientType(
-                    patientType = patientType?.name ?: "UNKNOWN",
-                    amount = patientBills.fold(BigDecimal.ZERO) { total, bill ->
-                        total + bill.amount
-                    }
-                )
+            .mapValues { (_, patientBills) ->
+                patientBills.fold(BigDecimal.ZERO) { total, bill ->
+                    total + bill.amount
+                }
             }
-            .sortedBy { it.patientType }
+
+        return dashboardPatientTypes.map { patientType ->
+            EarningsByPatientType(
+                patientType = patientType.name,
+                amount = totalsByType[patientType] ?: BigDecimal.ZERO
+            )
+        }
     }
 
     private fun sumEarnings(

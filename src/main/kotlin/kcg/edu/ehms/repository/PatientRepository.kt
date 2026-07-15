@@ -6,11 +6,9 @@ import kcg.edu.ehms.entity.PatientType
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor
 import org.springframework.data.jpa.repository.Query
+import org.springframework.data.repository.query.Param
 import java.time.LocalDateTime
 
-/**
- * Projection used for dashboard patient counts.
- */
 interface PatientCountProjection {
     fun getPatientType(): PatientType
     fun getGender(): Gender
@@ -32,10 +30,22 @@ interface PatientRepository :
     )
     fun countGroupedByTypeAndGender(): List<PatientCountProjection>
 
-    /**
-     * Returns patients registered in the supplied half-open date range.
-     * The service groups their registeredAt values by month.
-     */
+    @Query(
+        """
+        select p.patientType as patientType,
+               p.gender as gender,
+               count(p) as count
+        from Patient p
+        where p.registeredAt >= :startDateTime
+          and p.registeredAt < :endDateTime
+        group by p.patientType, p.gender
+        """
+    )
+    fun countGroupedByTypeAndGenderBetween(
+        @Param("startDateTime") startDateTime: LocalDateTime,
+        @Param("endDateTime") endDateTime: LocalDateTime
+    ): List<PatientCountProjection>
+
     fun findAllByRegisteredAtGreaterThanEqualAndRegisteredAtLessThan(
         startDateTime: LocalDateTime,
         endDateTime: LocalDateTime

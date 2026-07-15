@@ -484,3 +484,98 @@ Caused by: org.hibernate.HibernateException: Unable to determine Dialect without
 2026-07-15T21:00:14.862+09:00  INFO 18976 --- [ehms] [http-nio-8080-exec-9] k.edu.ehms.logging.RequestLoggingFilter  : HTTP GET /api/dashboard/summary -> 200 (35 ms) from 0:0:0:0:0:0:0:1
 2026-07-15T21:00:14.874+09:00  INFO 18976 --- [ehms] [http-nio-8080-exec-1] k.edu.ehms.logging.RequestLoggingFilter  : HTTP GET /api/dashboard/earnings -> 200 (45 ms) from 0:0:0:0:0:0:0:1
 2026-07-15T21:00:14.874+09:00  INFO 18976 --- [ehms] [http-nio-8080-exec-4] k.edu.ehms.logging.RequestLoggingFilter  : HTTP GET /api/dashboard/earnings -> 200 (40 ms) from 0:0:0:0:0:0:0:1
+2026-07-15T21:34:47.908+09:00  INFO 18976 --- [ehms] [http-nio-8080-exec-8] k.edu.ehms.logging.RequestLoggingFilter  : HTTP OPTIONS /api/dashboard/summary -> 200 (1 ms) from 0:0:0:0:0:0:0:1
+2026-07-15T21:34:47.909+09:00  INFO 18976 --- [ehms] [http-nio-8080-exec-5] k.edu.ehms.logging.RequestLoggingFilter  : HTTP OPTIONS /api/dashboard/earnings -> 200 (1 ms) from 0:0:0:0:0:0:0:1
+2026-07-15T21:34:47.929+09:00  INFO 18976 --- [ehms] [http-nio-8080-exec-2] k.edu.ehms.logging.RequestLoggingFilter  : HTTP GET /api/dashboard/summary -> 200 (16 ms) from 0:0:0:0:0:0:0:1
+2026-07-15T21:34:48.150+09:00  INFO 18976 --- [ehms] [http-nio-8080-exec-9] k.edu.ehms.logging.RequestLoggingFilter  : HTTP GET /api/dashboard/earnings -> 200 (237 ms) from 0:0:0:0:0:0:0:1
+2026-07-15T21:35:43.231+09:00  INFO 18976 --- [ehms] [SpringApplicationShutdownHook] o.s.boot.tomcat.GracefulShutdown         : Commencing graceful shutdown. Waiting for active requests to complete
+2026-07-15T21:35:43.628+09:00  INFO 18976 --- [ehms] [tomcat-shutdown] o.s.boot.tomcat.GracefulShutdown         : Graceful shutdown complete
+2026-07-15T21:35:43.634+09:00  INFO 18976 --- [ehms] [SpringApplicationShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-07-15T21:35:43.636+09:00  INFO 18976 --- [ehms] [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
+2026-07-15T21:35:43.639+09:00  INFO 18976 --- [ehms] [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
+2026-07-15T21:35:53.192+09:00  INFO 22396 --- [ehms] [main] kcg.edu.ehms.EhmsApplicationKt           : Starting EhmsApplicationKt using Java 17.0.19 with PID 22396 (D:\Web 3.0\ehms\target\classes started by Dell in D:\Web 3.0\ehms)
+2026-07-15T21:35:53.195+09:00 DEBUG 22396 --- [ehms] [main] kcg.edu.ehms.EhmsApplicationKt           : Running with Spring Boot v4.1.0, Spring v7.0.8
+2026-07-15T21:35:53.196+09:00  INFO 22396 --- [ehms] [main] kcg.edu.ehms.EhmsApplicationKt           : No active profile set, falling back to 1 default profile: "default"
+2026-07-15T21:35:54.882+09:00  INFO 22396 --- [ehms] [main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-07-15T21:35:54.988+09:00  INFO 22396 --- [ehms] [main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 100 ms. Found 9 JPA repository interfaces.
+2026-07-15T21:35:56.422+09:00  INFO 22396 --- [ehms] [main] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 8080 (http)
+2026-07-15T21:35:56.453+09:00  INFO 22396 --- [ehms] [main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-07-15T21:35:56.453+09:00  INFO 22396 --- [ehms] [main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/11.0.22]
+2026-07-15T21:35:56.647+09:00  INFO 22396 --- [ehms] [main] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 3379 ms
+2026-07-15T21:35:56.845+09:00 DEBUG 22396 --- [ehms] [main] k.edu.ehms.logging.RequestLoggingFilter  : Filter 'requestLoggingFilter' configured for use
+2026-07-15T21:35:57.267+09:00  INFO 22396 --- [ehms] [main] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-07-15T21:35:57.423+09:00  INFO 22396 --- [ehms] [main] org.hibernate.orm.core                   : HHH000001: Hibernate ORM core version 7.4.1.Final
+2026-07-15T21:35:58.583+09:00  INFO 22396 --- [ehms] [main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-07-15T21:35:58.671+09:00  INFO 22396 --- [ehms] [main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-07-15T21:35:59.065+09:00  INFO 22396 --- [ehms] [main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@2d41bb5a
+2026-07-15T21:35:59.069+09:00  INFO 22396 --- [ehms] [main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-07-15T21:35:59.297+09:00  WARN 22396 --- [ehms] [main] org.hibernate.orm.core                   : HHH000511: The 5.5.5 version for [org.hibernate.dialect.MySQLDialect] is no longer supported, hence certain features may not work properly.The minimum supported version is 8.0.0. Check the community dialects project for available legacy versions.
+2026-07-15T21:35:59.362+09:00  INFO 22396 --- [ehms] [main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [jdbc:mysql://localhost:3306/hms_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Tokyo]
+	Database driver: MySQL Connector/J
+	Database dialect: MySQLDialect
+	Database version: 5.5.5
+	Default catalog/schema: hms_db/undefined
+	Autocommit mode: undefined/unknown
+	Isolation level: REPEATABLE_READ [default REPEATABLE_READ]
+	JDBC fetch size: none
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-07-15T21:36:02.428+09:00  INFO 22396 --- [ehms] [main] org.hibernate.orm.core                   : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-07-15T21:36:03.079+09:00  INFO 22396 --- [ehms] [main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-07-15T21:36:03.391+09:00  INFO 22396 --- [ehms] [main] o.s.d.j.r.query.QueryEnhancerFactories   : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-07-15T21:36:06.571+09:00  INFO 22396 --- [ehms] [main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with UserDetailsService bean with name customUserDetailsService
+2026-07-15T21:36:07.969+09:00  INFO 22396 --- [ehms] [main] o.s.boot.tomcat.TomcatWebServer          : Tomcat started on port 8080 (http) with context path '/'
+2026-07-15T21:36:07.976+09:00  INFO 22396 --- [ehms] [main] kcg.edu.ehms.EhmsApplicationKt           : Started EhmsApplicationKt in 15.34 seconds (process running for 15.864)
+2026-07-15T21:36:21.535+09:00  INFO 22396 --- [ehms] [http-nio-8080-exec-2] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-07-15T21:36:21.535+09:00  INFO 22396 --- [ehms] [http-nio-8080-exec-2] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-07-15T21:36:21.535+09:00  INFO 22396 --- [ehms] [http-nio-8080-exec-2] o.s.web.servlet.DispatcherServlet        : Completed initialization in 0 ms
+2026-07-15T21:36:21.624+09:00  INFO 22396 --- [ehms] [http-nio-8080-exec-1] k.edu.ehms.logging.RequestLoggingFilter  : HTTP OPTIONS /api/dashboard/earnings -> 200 (78 ms) from 0:0:0:0:0:0:0:1
+2026-07-15T21:36:21.624+09:00  INFO 22396 --- [ehms] [http-nio-8080-exec-4] k.edu.ehms.logging.RequestLoggingFilter  : HTTP OPTIONS /api/dashboard/earnings -> 200 (78 ms) from 0:0:0:0:0:0:0:1
+2026-07-15T21:36:21.624+09:00  INFO 22396 --- [ehms] [http-nio-8080-exec-2] k.edu.ehms.logging.RequestLoggingFilter  : HTTP OPTIONS /api/dashboard/summary -> 200 (78 ms) from 0:0:0:0:0:0:0:1
+2026-07-15T21:36:21.624+09:00  INFO 22396 --- [ehms] [http-nio-8080-exec-3] k.edu.ehms.logging.RequestLoggingFilter  : HTTP OPTIONS /api/dashboard/summary -> 200 (78 ms) from 0:0:0:0:0:0:0:1
+2026-07-15T21:36:22.485+09:00  INFO 22396 --- [ehms] [http-nio-8080-exec-10] k.edu.ehms.logging.RequestLoggingFilter  : HTTP GET /api/dashboard/summary -> 200 (830 ms) from 0:0:0:0:0:0:0:1
+2026-07-15T21:36:22.484+09:00  INFO 22396 --- [ehms] [http-nio-8080-exec-8] k.edu.ehms.logging.RequestLoggingFilter  : HTTP GET /api/dashboard/summary -> 200 (829 ms) from 0:0:0:0:0:0:0:1
+2026-07-15T21:36:22.487+09:00  INFO 22396 --- [ehms] [http-nio-8080-exec-9] k.edu.ehms.logging.RequestLoggingFilter  : HTTP GET /api/dashboard/earnings -> 200 (833 ms) from 0:0:0:0:0:0:0:1
+2026-07-15T21:36:22.487+09:00  INFO 22396 --- [ehms] [http-nio-8080-exec-5] k.edu.ehms.logging.RequestLoggingFilter  : HTTP GET /api/dashboard/earnings -> 200 (834 ms) from 0:0:0:0:0:0:0:1
+2026-07-15T21:37:39.365+09:00  INFO 22396 --- [ehms] [http-nio-8080-exec-2] k.edu.ehms.logging.RequestLoggingFilter  : HTTP OPTIONS /api/auth/logout -> 200 (2 ms) from 0:0:0:0:0:0:0:1
+2026-07-15T21:37:39.775+09:00  INFO 22396 --- [ehms] [http-nio-8080-exec-1] k.edu.ehms.logging.RequestLoggingFilter  : HTTP POST /api/auth/logout -> 200 (404 ms) from 0:0:0:0:0:0:0:1
+2026-07-15T21:37:45.814+09:00  INFO 22396 --- [ehms] [http-nio-8080-exec-8] k.edu.ehms.logging.RequestLoggingFilter  : HTTP OPTIONS /api/auth/login -> 200 (2 ms) from 0:0:0:0:0:0:0:1
+2026-07-15T21:37:46.928+09:00 DEBUG 22396 --- [ehms] [http-nio-8080-exec-10] k.e.e.security.CustomUserDetailsService  : Loaded user user with authorities [ROLE_USER]
+2026-07-15T21:37:47.736+09:00  INFO 22396 --- [ehms] [http-nio-8080-exec-10] kcg.edu.ehms.service.AuthService         : Successful login for user user
+2026-07-15T21:37:47.762+09:00  INFO 22396 --- [ehms] [http-nio-8080-exec-10] k.edu.ehms.logging.RequestLoggingFilter  : HTTP POST /api/auth/login -> 200 (1943 ms) from 0:0:0:0:0:0:0:1
+2026-07-15T21:37:47.973+09:00  INFO 22396 --- [ehms] [http-nio-8080-exec-9] k.edu.ehms.logging.RequestLoggingFilter  : HTTP OPTIONS /api/dashboard/summary -> 200 (5 ms) from 0:0:0:0:0:0:0:1
+2026-07-15T21:37:47.974+09:00  INFO 22396 --- [ehms] [http-nio-8080-exec-5] k.edu.ehms.logging.RequestLoggingFilter  : HTTP OPTIONS /api/dashboard/summary -> 200 (10 ms) from 0:0:0:0:0:0:0:1
+2026-07-15T21:37:48.023+09:00  INFO 22396 --- [ehms] [http-nio-8080-exec-4] k.edu.ehms.logging.RequestLoggingFilter  : HTTP GET /api/dashboard/summary -> 200 (36 ms) from 0:0:0:0:0:0:0:1
+2026-07-15T21:37:48.023+09:00  INFO 22396 --- [ehms] [http-nio-8080-exec-7] k.edu.ehms.logging.RequestLoggingFilter  : HTTP GET /api/dashboard/summary -> 200 (38 ms) from 0:0:0:0:0:0:0:1
+2026-07-15T21:38:13.267+09:00  INFO 22396 --- [ehms] [http-nio-8080-exec-3] k.edu.ehms.logging.RequestLoggingFilter  : HTTP OPTIONS /api/patients/with-billing -> 200 (2 ms) from 0:0:0:0:0:0:0:1
+2026-07-15T21:38:13.488+09:00  INFO 22396 --- [ehms] [http-nio-8080-exec-6] kcg.edu.ehms.service.PatientService      : Patient 19 created by user
+2026-07-15T21:38:13.508+09:00  INFO 22396 --- [ehms] [http-nio-8080-exec-6] kcg.edu.ehms.service.PatientService      : Created registration bill 11 for patient 19 with amount 100.00
+2026-07-15T21:38:13.775+09:00  INFO 22396 --- [ehms] [http-nio-8080-exec-6] k.edu.ehms.logging.RequestLoggingFilter  : HTTP POST /api/patients/with-billing -> 201 (498 ms) from 0:0:0:0:0:0:0:1
+2026-07-15T21:38:13.943+09:00  INFO 22396 --- [ehms] [http-nio-8080-exec-1] k.edu.ehms.logging.RequestLoggingFilter  : HTTP OPTIONS /api/patients -> 200 (1 ms) from 0:0:0:0:0:0:0:1
+2026-07-15T21:38:13.943+09:00  INFO 22396 --- [ehms] [http-nio-8080-exec-2] k.edu.ehms.logging.RequestLoggingFilter  : HTTP OPTIONS /api/patients -> 200 (1 ms) from 0:0:0:0:0:0:0:1
+2026-07-15T21:38:14.102+09:00  INFO 22396 --- [ehms] [http-nio-8080-exec-8] k.edu.ehms.logging.RequestLoggingFilter  : HTTP GET /api/patients -> 200 (140 ms) from 0:0:0:0:0:0:0:1
+2026-07-15T21:38:14.102+09:00  INFO 22396 --- [ehms] [http-nio-8080-exec-10] k.edu.ehms.logging.RequestLoggingFilter  : HTTP GET /api/patients -> 200 (140 ms) from 0:0:0:0:0:0:0:1
+2026-07-15T21:38:16.136+09:00  INFO 22396 --- [ehms] [http-nio-8080-exec-9] k.edu.ehms.logging.RequestLoggingFilter  : HTTP OPTIONS /api/dashboard/summary -> 200 (2 ms) from 0:0:0:0:0:0:0:1
+2026-07-15T21:38:16.136+09:00  INFO 22396 --- [ehms] [http-nio-8080-exec-5] k.edu.ehms.logging.RequestLoggingFilter  : HTTP OPTIONS /api/dashboard/summary -> 200 (2 ms) from 0:0:0:0:0:0:0:1
+2026-07-15T21:38:16.184+09:00  INFO 22396 --- [ehms] [http-nio-8080-exec-4] k.edu.ehms.logging.RequestLoggingFilter  : HTTP GET /api/dashboard/summary -> 200 (42 ms) from 0:0:0:0:0:0:0:1
+2026-07-15T21:38:16.184+09:00  INFO 22396 --- [ehms] [http-nio-8080-exec-7] k.edu.ehms.logging.RequestLoggingFilter  : HTTP GET /api/dashboard/summary -> 200 (42 ms) from 0:0:0:0:0:0:0:1
+2026-07-15T21:38:32.640+09:00  INFO 22396 --- [ehms] [http-nio-8080-exec-3] k.edu.ehms.logging.RequestLoggingFilter  : HTTP OPTIONS /api/patients -> 200 (1 ms) from 0:0:0:0:0:0:0:1
+2026-07-15T21:38:32.640+09:00  INFO 22396 --- [ehms] [http-nio-8080-exec-6] k.edu.ehms.logging.RequestLoggingFilter  : HTTP OPTIONS /api/patients -> 200 (0 ms) from 0:0:0:0:0:0:0:1
+2026-07-15T21:38:32.695+09:00  INFO 22396 --- [ehms] [http-nio-8080-exec-1] k.edu.ehms.logging.RequestLoggingFilter  : HTTP GET /api/patients -> 200 (46 ms) from 0:0:0:0:0:0:0:1
+2026-07-15T21:38:32.695+09:00  INFO 22396 --- [ehms] [http-nio-8080-exec-2] k.edu.ehms.logging.RequestLoggingFilter  : HTTP GET /api/patients -> 200 (48 ms) from 0:0:0:0:0:0:0:1
+2026-07-15T21:38:36.470+09:00  INFO 22396 --- [ehms] [http-nio-8080-exec-10] k.edu.ehms.logging.RequestLoggingFilter  : HTTP OPTIONS /api/auth/logout -> 200 (0 ms) from 0:0:0:0:0:0:0:1
+2026-07-15T21:38:36.477+09:00  INFO 22396 --- [ehms] [http-nio-8080-exec-8] k.edu.ehms.logging.RequestLoggingFilter  : HTTP POST /api/auth/logout -> 200 (3 ms) from 0:0:0:0:0:0:0:1
+2026-07-15T21:38:44.305+09:00  INFO 22396 --- [ehms] [http-nio-8080-exec-9] k.edu.ehms.logging.RequestLoggingFilter  : HTTP OPTIONS /api/auth/login -> 200 (1 ms) from 0:0:0:0:0:0:0:1
+2026-07-15T21:38:44.317+09:00 DEBUG 22396 --- [ehms] [http-nio-8080-exec-5] k.e.e.security.CustomUserDetailsService  : Loaded user subjeevan with authorities [ROLE_ADMIN, ROLE_USER]
+2026-07-15T21:38:45.216+09:00  INFO 22396 --- [ehms] [http-nio-8080-exec-5] kcg.edu.ehms.service.AuthService         : Successful login for user subjeevan
+2026-07-15T21:38:45.218+09:00  INFO 22396 --- [ehms] [http-nio-8080-exec-5] k.edu.ehms.logging.RequestLoggingFilter  : HTTP POST /api/auth/login -> 200 (908 ms) from 0:0:0:0:0:0:0:1
+2026-07-15T21:38:45.461+09:00  INFO 22396 --- [ehms] [http-nio-8080-exec-7] k.edu.ehms.logging.RequestLoggingFilter  : HTTP OPTIONS /api/dashboard/summary -> 200 (3 ms) from 0:0:0:0:0:0:0:1
+2026-07-15T21:38:45.474+09:00  INFO 22396 --- [ehms] [http-nio-8080-exec-6] k.edu.ehms.logging.RequestLoggingFilter  : HTTP OPTIONS /api/dashboard/summary -> 200 (5 ms) from 0:0:0:0:0:0:0:1
+2026-07-15T21:38:45.463+09:00  INFO 22396 --- [ehms] [http-nio-8080-exec-4] k.edu.ehms.logging.RequestLoggingFilter  : HTTP OPTIONS /api/dashboard/earnings -> 200 (4 ms) from 0:0:0:0:0:0:0:1
+2026-07-15T21:38:45.488+09:00  INFO 22396 --- [ehms] [http-nio-8080-exec-6] k.edu.ehms.logging.RequestLoggingFilter  : HTTP OPTIONS /api/dashboard/earnings -> 200 (11 ms) from 0:0:0:0:0:0:0:1
+2026-07-15T21:38:45.531+09:00  INFO 22396 --- [ehms] [http-nio-8080-exec-1] k.edu.ehms.logging.RequestLoggingFilter  : HTTP GET /api/dashboard/summary -> 200 (44 ms) from 0:0:0:0:0:0:0:1
+2026-07-15T21:38:45.534+09:00  INFO 22396 --- [ehms] [http-nio-8080-exec-2] k.edu.ehms.logging.RequestLoggingFilter  : HTTP GET /api/dashboard/summary -> 200 (42 ms) from 0:0:0:0:0:0:0:1
+2026-07-15T21:38:45.546+09:00  INFO 22396 --- [ehms] [http-nio-8080-exec-10] k.edu.ehms.logging.RequestLoggingFilter  : HTTP GET /api/dashboard/earnings -> 200 (53 ms) from 0:0:0:0:0:0:0:1
+2026-07-15T21:38:45.546+09:00  INFO 22396 --- [ehms] [http-nio-8080-exec-4] k.edu.ehms.logging.RequestLoggingFilter  : HTTP GET /api/dashboard/earnings -> 200 (54 ms) from 0:0:0:0:0:0:0:1
