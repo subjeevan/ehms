@@ -1,6 +1,14 @@
 package kcg.edu.ehms.service
 
-import kcg.edu.ehms.dto.dashboard.*
+import kcg.edu.ehms.dto.dashboard.DailyEarningsResponse
+import kcg.edu.ehms.dto.dashboard.DashboardSummaryResponse
+import kcg.edu.ehms.dto.dashboard.EarningsByPatientType
+import kcg.edu.ehms.dto.dashboard.EarningsOverviewResponse
+import kcg.edu.ehms.dto.dashboard.GenderCount
+import kcg.edu.ehms.dto.dashboard.MonthlyEarningsResponse
+import kcg.edu.ehms.dto.dashboard.MonthlyRegistrationResponse
+import kcg.edu.ehms.dto.dashboard.TotalEarningsResponse
+import kcg.edu.ehms.entity.Bill
 import kcg.edu.ehms.entity.Gender
 import kcg.edu.ehms.entity.PatientType
 import kcg.edu.ehms.entity.PaymentStatus
@@ -17,24 +25,28 @@ class DashboardService(
     private val patientRepository: PatientRepository,
     private val billRepository: BillRepository
 ) {
+
     @Transactional(readOnly = true)
     fun summary(): DashboardSummaryResponse {
-        val grouped = patientRepository.countGroupedByTypeAndGender()
-            .associate { (it.getPatientType() to it.getGender()) to it.getCount() }
+        val groupedCounts = patientRepository
+            .countGroupedByTypeAndGender()
+            .associate {
+                (it.getPatientType() to it.getGender()) to it.getCount()
+            }
 
-        fun counts(type: PatientType) = GenderCount(
-            male = grouped[type to Gender.MALE] ?: 0,
-            female = grouped[type to Gender.FEMALE] ?: 0
-        )
+        fun countFor(patientType: PatientType): GenderCount {
+            return GenderCount(
+                male = groupedCounts[patientType to Gender.MALE] ?: 0L,
+                female = groupedCounts[patientType to Gender.FEMALE] ?: 0L
+            )
+        }
 
-        val paying = counts(PatientType.PAYING)
-        val insurance = counts(PatientType.INSURANCE)
-        val general = counts(PatientType.GENERAL)
         return DashboardSummaryResponse(
-            totalPatients = paying.total + insurance.total + general.total,
-            paying = paying,
-            insurance = insurance,
-            general = general
+            totalPatients = patientRepository.count(),
+            paying = countFor(PatientType.PAYING),
+            insurance = countFor(PatientType.INSURANCE),
+            general = countFor(PatientType.GENERAL),
+            monthlyRegistrations = calculateMonthlyRegistrations()
         )
     }
 
@@ -42,86 +54,115 @@ class DashboardService(
     fun earningsOverview(): EarningsOverviewResponse {
         val today = LocalDate.now()
         val monthStart = today.withDayOfMonth(1)
-        
-        val dailyEarnings = calculateDailyEarnings(today)
-        val monthlyEarnings = calculateMonthlyEarnings(monthStart, today)
-        val totalEarnings = calculateTotalEarnings()
 
         return EarningsOverviewResponse(
-            today = dailyEarnings,
-            thisMonth = monthlyEarnings,
-            total = totalEarnings
+            today = calculateDailyEarnings(today),
+            thisMonth = calculateMonthlyEarnings(monthStart, today),
+            total = calculateTotalEarnings()
         )
     }
 
-    private fun calculateDailyEarnings(date: LocalDate): DailyEarningsResponse {
-        val bills = billRepository.findByDateAndStatus(date, PaymentStatus.PAID)
-        val earnings = bills
-            .groupBy { it.patient?.patientType }
-            .map { (type, bills) ->
-                EarningsByPatientType(
-                    patientType = type?.name ?: "UNKNOWN",
-                    amount = bills.fold(BigDecimal.ZERO) { acc, bill -> acc + bill.amount }
-                )
-            }
-            .sortedBy { it.patientType }
+    private fun calculateMonthlyRegistrations(): List<MonthlyRegistrationResponse> {
+        val currentMonth = YearMonth.now()
+        val firstMonth = currentMonth.minusMonths(11)
 
-        val total = earnings.fold(BigDecimal.ZERO) { acc, earning -> acc + earning.amount }
+        val startDateTime = firstMonth
+            .atDay(1)
+            .atStartOfDay()
+
+        val endDateTime = currentMonth
+            .plusMonths(1)
+            .atDay(1)
+            .atStartOfDay()
+
+        val countsByMonth = patientRepository
+            .findAllByRegisteredAtGreaterThanEqualAndRegisteredAtLessThan(
+                startDateTime,
+                endDateTime
+            )
+            .groupingBy { YearMonth.from(it.registeredAt) }
+            .eachCount()
+
+        return (0L..11L).map { offset ->
+            val month = firstMonth.plusMonths(offset)
+
+            MonthlyRegistrationResponse(
+                month = month.toString(),
+                count = countsByMonth[month]?.toLong() ?: 0L
+            )
+        }
+    }
+
+    private fun calculateDailyEarnings(
+        date: LocalDate
+    ): DailyEarningsResponse {
+        val earnings = calculateEarnings(
+            billRepository.findByDateAndStatus(
+                date,
+                PaymentStatus.PAID
+            )
+        )
 
         return DailyEarningsResponse(
             date = date,
             earnings = earnings,
-            total = total
+            total = sumEarnings(earnings)
         )
     }
 
-    private fun calculateMonthlyEarnings(monthStart: LocalDate, today: LocalDate): MonthlyEarningsResponse {
-        val monthEnd = today
-        val bills = billRepository.findByDateRangeAndStatus(monthStart, monthEnd, PaymentStatus.PAID)
-        
-        val earnings = bills
-            .groupBy { it.patient?.patientType }
-            .map { (type, bills) ->
-                EarningsByPatientType(
-                    patientType = type?.name ?: "UNKNOWN",
-                    amount = bills.fold(BigDecimal.ZERO) { acc, bill -> acc + bill.amount }
-                )
-            }
-            .sortedBy { it.patientType }
-
-        val total = earnings.fold(BigDecimal.ZERO) { acc, earning -> acc + earning.amount }
+    private fun calculateMonthlyEarnings(
+        monthStart: LocalDate,
+        today: LocalDate
+    ): MonthlyEarningsResponse {
+        val earnings = calculateEarnings(
+            billRepository.findByDateRangeAndStatus(
+                monthStart,
+                today,
+                PaymentStatus.PAID
+            )
+        )
 
         return MonthlyEarningsResponse(
             month = YearMonth.from(today).toString(),
             earnings = earnings,
-            total = total
+            total = sumEarnings(earnings)
         )
     }
 
     private fun calculateTotalEarnings(): TotalEarningsResponse {
-        val allBills = billRepository.findAll()
-        
-        val earnings = allBills
-            .filter { it.paymentStatus == PaymentStatus.PAID }
-            .groupBy { it.patient?.patientType }
-            .map { (type, bills) ->
-                EarningsByPatientType(
-                    patientType = type?.name ?: "UNKNOWN",
-                    amount = bills.fold(BigDecimal.ZERO) { acc, bill -> acc + bill.amount }
-                )
-            }
-            .sortedBy { it.patientType }
-
-        val paidCount = billRepository.countByPaymentStatus(PaymentStatus.PAID)
-        val pendingCount = billRepository.countByPaymentStatus(PaymentStatus.PENDING)
-        val total = earnings.fold(BigDecimal.ZERO) { acc, earning -> acc + earning.amount }
+        val earnings = calculateEarnings(
+            billRepository.findAllByPaymentStatus(PaymentStatus.PAID)
+        )
 
         return TotalEarningsResponse(
             earnings = earnings,
-            total = total,
-            paidCount = paidCount,
-            pendingCount = pendingCount
+            total = sumEarnings(earnings),
+            paidCount = billRepository.countByPaymentStatus(PaymentStatus.PAID),
+            pendingCount = billRepository.countByPaymentStatus(PaymentStatus.PENDING)
         )
     }
-}
 
+    private fun calculateEarnings(
+        bills: List<Bill>
+    ): List<EarningsByPatientType> {
+        return bills
+            .groupBy { it.patient?.patientType }
+            .map { (patientType, patientBills) ->
+                EarningsByPatientType(
+                    patientType = patientType?.name ?: "UNKNOWN",
+                    amount = patientBills.fold(BigDecimal.ZERO) { total, bill ->
+                        total + bill.amount
+                    }
+                )
+            }
+            .sortedBy { it.patientType }
+    }
+
+    private fun sumEarnings(
+        earnings: List<EarningsByPatientType>
+    ): BigDecimal {
+        return earnings.fold(BigDecimal.ZERO) { total, earning ->
+            total + earning.amount
+        }
+    }
+}
