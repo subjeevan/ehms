@@ -1,25 +1,38 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import ProfileModal from "@/components/ProfileModal";
 
 const primaryItems = [
   { to: "/dashboard", label: "Dashboard", icon: "▦" },
   { to: "/patients/register", label: "Patient Registration", icon: "+" },
-  { to: "/patients", label: "Patient List", icon: "☷" }
+  { to: "/patients", label: "Patient List", icon: "☷" },
 ];
 
 function active(pathname, href, exact = false) {
-  return exact ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
+  return exact
+    ? pathname === href
+    : pathname === href || pathname.startsWith(`${href}/`);
 }
 
 export default function AppLayout({ children }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const { user, isAdmin, logout } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
+
+  const displayName = useMemo(() => {
+    const name = [user?.firstName, user?.lastName]
+      .filter(Boolean)
+      .join(" ")
+      .trim();
+
+    return name || user?.username || "User";
+  }, [user]);
 
   useEffect(() => {
     setMobileOpen(false);
@@ -27,7 +40,10 @@ export default function AppLayout({ children }) {
 
   useEffect(() => {
     document.documentElement.classList.toggle("scroll-locked", mobileOpen);
-    return () => document.documentElement.classList.remove("scroll-locked");
+
+    return () => {
+      document.documentElement.classList.remove("scroll-locked");
+    };
   }, [mobileOpen]);
 
   const handleLogout = async () => {
@@ -68,9 +84,15 @@ export default function AppLayout({ children }) {
 
         <nav className="sidebar-nav" aria-label="Main navigation">
           <span className="nav-label">Clinical</span>
+
           {primaryItems.map((item) => (
             <span key={item.to}>
-              {navLink(item.to, item.label, item.icon, item.to === "/patients")}
+              {navLink(
+                item.to,
+                item.label,
+                item.icon,
+                item.to === "/patients",
+              )}
             </span>
           ))}
 
@@ -85,20 +107,37 @@ export default function AppLayout({ children }) {
           )}
 
           <span className="nav-label">Account</span>
-          {navLink("/change-password", "Change Password", "●")}
+          <button
+            type="button"
+            className="sidebar-link sidebar-button-link"
+            onClick={() => setProfileOpen(true)}
+          >
+            <span className="nav-icon">●</span>
+            My profile
+          </button>
         </nav>
 
         <div className="sidebar-footer">
-          <div className="user-chip">
+          <button
+            type="button"
+            className="user-chip profile-trigger"
+            onClick={() => setProfileOpen(true)}
+            aria-label="Open profile"
+          >
             <span className="avatar">
-              {user?.username?.slice(0, 1).toUpperCase()}
+              {displayName.slice(0, 1).toUpperCase()}
             </span>
             <span>
-              <strong>{user?.username}</strong>
+              <strong>{displayName}</strong>
               <small>{isAdmin ? "Administrator" : "User"}</small>
             </span>
-          </div>
-          <button type="button" className="button ghost full" onClick={handleLogout}>
+          </button>
+
+          <button
+            type="button"
+            className="button ghost full"
+            onClick={handleLogout}
+          >
             Sign out
           </button>
         </div>
@@ -115,10 +154,18 @@ export default function AppLayout({ children }) {
             ☰
           </button>
           <span className="topbar-label">Secure clinical workspace</span>
-          <div className="status-dot"><span /> API connected</div>
+          <div className="status-dot">
+            <span /> API connected
+          </div>
         </header>
+
         <main className="page-content">{children}</main>
       </div>
+
+      <ProfileModal
+        open={profileOpen}
+        onClose={() => setProfileOpen(false)}
+      />
     </div>
   );
 }

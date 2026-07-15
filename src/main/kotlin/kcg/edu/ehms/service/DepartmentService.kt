@@ -3,10 +3,12 @@ package kcg.edu.ehms.service
 import kcg.edu.ehms.dto.setup.DepartmentRequest
 import kcg.edu.ehms.dto.setup.DepartmentResponse
 import kcg.edu.ehms.entity.Department
+import kcg.edu.ehms.exception.BusinessValidationException
 import kcg.edu.ehms.exception.DuplicateEntryException
 import kcg.edu.ehms.exception.ResourceNotFoundException
 import kcg.edu.ehms.repository.DepartmentRepository
 import kcg.edu.ehms.repository.DoctorRepository
+import kcg.edu.ehms.repository.UserRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -14,7 +16,8 @@ import org.springframework.transaction.annotation.Transactional
 @Service
 class DepartmentService(
     private val departmentRepository: DepartmentRepository,
-    private val doctorRepository: DoctorRepository
+    private val doctorRepository: DoctorRepository,
+    private val userRepository: UserRepository
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -28,7 +31,14 @@ class DepartmentService(
         if (departmentRepository.existsByNameIgnoreCase(request.name.trim())) {
             throw DuplicateEntryException("Department name already exists")
         }
-        val saved = departmentRepository.save(Department(name = request.name.trim(), description = request.description.trim()))
+
+        val saved = departmentRepository.save(
+            Department(
+                name = request.name.trim(),
+                description = request.description.trim()
+            )
+        )
+
         log.info("Department {} created", saved.id)
         return saved.toResponse()
     }
@@ -38,6 +48,7 @@ class DepartmentService(
         if (departmentRepository.existsByNameIgnoreCaseAndIdNot(request.name.trim(), id)) {
             throw DuplicateEntryException("Department name already exists")
         }
+
         val department = find(id)
         department.name = request.name.trim()
         department.description = request.description.trim()
@@ -46,17 +57,32 @@ class DepartmentService(
 
     @Transactional
     fun delete(id: Long) {
+        if (userRepository.existsByDepartmentId(id)) {
+            throw BusinessValidationException(
+                "Department cannot be deleted because users are assigned to it"
+            )
+        }
+
         val department = find(id)
         department.doctors.toList().forEach { doctor ->
             doctor.departments.removeIf { it.id == id }
             doctorRepository.save(doctor)
         }
+
         departmentRepository.delete(department)
         log.warn("Department {} deleted", id)
     }
 
     private fun find(id: Long) = departmentRepository.findById(id)
-        .orElseThrow { ResourceNotFoundException("Department with ID $id was not found") }
+        .orElseThrow {
+            ResourceNotFoundException(
+                "Department with ID $id was not found"
+            )
+        }
 
-    private fun Department.toResponse() = DepartmentResponse(id!!, name, description)
+    private fun Department.toResponse() = DepartmentResponse(
+        id = requireNotNull(id),
+        name = name,
+        description = description
+    )
 }

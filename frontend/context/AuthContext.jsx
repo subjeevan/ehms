@@ -6,7 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
-  useState
+  useState,
 } from "react";
 import { authApi } from "@/lib/api";
 
@@ -14,10 +14,21 @@ const AuthContext = createContext(null);
 
 function loadStoredUser() {
   if (typeof window === "undefined") return null;
+
   try {
     return JSON.parse(localStorage.getItem("hms_user"));
   } catch {
     return null;
+  }
+}
+
+function saveStoredUser(user) {
+  if (typeof window === "undefined") return;
+
+  if (user) {
+    localStorage.setItem("hms_user", JSON.stringify(user));
+  } else {
+    localStorage.removeItem("hms_user");
   }
 }
 
@@ -26,12 +37,6 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(null);
   const [ready, setReady] = useState(false);
 
-  useEffect(() => {
-    setUser(loadStoredUser());
-    setToken(localStorage.getItem("hms_token"));
-    setReady(true);
-  }, []);
-
   const clearAuth = useCallback(() => {
     localStorage.removeItem("hms_token");
     localStorage.removeItem("hms_user");
@@ -39,27 +44,64 @@ export function AuthProvider({ children }) {
     setUser(null);
   }, []);
 
+  const refreshUser = useCallback(async () => {
+    const currentUser = await authApi.me();
+    setUser(currentUser);
+    saveStoredUser(currentUser);
+    return currentUser;
+  }, []);
+
+  useEffect(() => {
+    const storedToken = localStorage.getItem("hms_token");
+    const storedUser = loadStoredUser();
+
+    setToken(storedToken);
+    setUser(storedUser);
+    setReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!ready || !token) return;
+
+    refreshUser().catch(() => {
+      clearAuth();
+    });
+  }, [ready, token, refreshUser, clearAuth]);
+
   useEffect(() => {
     const handleUnauthorized = () => clearAuth();
     window.addEventListener("hms:unauthorized", handleUnauthorized);
-    return () =>
+
+    return () => {
       window.removeEventListener("hms:unauthorized", handleUnauthorized);
+    };
   }, [clearAuth]);
 
-  const login = useCallback(async (credentials) => {
-    const result = await authApi.login(credentials);
-    const nextUser = {
-      username: result.username,
-      roles: result.roles || [],
-      expiresAt: result.expiresAt
-    };
+  const login = useCallback(
+    async (credentials) => {
+      const result = await authApi.login(credentials);
 
-    localStorage.setItem("hms_token", result.token);
-    localStorage.setItem("hms_user", JSON.stringify(nextUser));
-    setToken(result.token);
-    setUser(nextUser);
-    return result;
-  }, []);
+      localStorage.setItem("hms_token", result.token);
+      setToken(result.token);
+
+      try {
+        const currentUser = await authApi.me();
+        const nextUser = {
+          ...currentUser,
+          expiresAt: result.expiresAt,
+        };
+
+        setUser(nextUser);
+        saveStoredUser(nextUser);
+      } catch (error) {
+        clearAuth();
+        throw error;
+      }
+
+      return result;
+    },
+    [clearAuth],
+  );
 
   const logout = useCallback(async () => {
     try {
@@ -67,6 +109,7 @@ export function AuthProvider({ children }) {
     } catch {
       // The token may already be expired.
     }
+
     clearAuth();
   }, [clearAuth]);
 
@@ -79,18 +122,33 @@ export function AuthProvider({ children }) {
       isAdmin: Boolean(user?.roles?.includes("ROLE_ADMIN")),
       login,
       logout,
-      clearAuth
+      clearAuth,
+      refreshUser,
     }),
-    [user, token, ready, login, logout, clearAuth]
+    [
+      user,
+      token,
+      ready,
+      login,
+      logout,
+      clearAuth,
+      refreshUser,
+    ],
   );
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {
   const context = useContext(AuthContext);
+
   if (!context) {
     throw new Error("useAuth must be used within AuthProvider");
   }
+
   return context;
 }

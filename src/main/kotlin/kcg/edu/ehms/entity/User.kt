@@ -1,11 +1,14 @@
 package kcg.edu.ehms.entity
 
 import jakarta.persistence.*
+import java.time.LocalDate
 import java.time.LocalDateTime
 
 /**
- * User entity representing a system user account in the EHMS system.
- * Stores user credentials, enabled status, and role assignments.
+ * System user account and employee profile.
+ *
+ * Profile columns are nullable so existing databases can be upgraded safely.
+ * New users are still required to provide all profile fields through validation.
  */
 @Entity
 @Table(name = "users")
@@ -19,6 +22,26 @@ class User(
 
     @Column(nullable = false, length = 100)
     var password: String = "",
+
+    @Column(name = "first_name", length = 80)
+    var firstName: String? = null,
+
+    @Column(name = "last_name", length = 80)
+    var lastName: String? = null,
+
+    @Column(name = "contact_number", length = 10)
+    var contactNumber: String? = null,
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    var gender: Gender? = null,
+
+    @Column(name = "date_of_birth")
+    var dateOfBirth: LocalDate? = null,
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "department_id")
+    var department: Department? = null,
 
     @Column(nullable = false)
     var enabled: Boolean = true,

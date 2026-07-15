@@ -1,15 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { authApi } from "@/lib/api";
 import Alert from "@/components/Alert";
 import FormField from "@/components/FormField";
+import { authApi } from "@/lib/api";
 
 export default function ChangePasswordPage() {
   const [values, setValues] = useState({
     currentPassword: "",
     newPassword: "",
-    confirmPassword: ""
+    confirmNewPassword: "",
   });
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -24,23 +24,21 @@ export default function ChangePasswordPage() {
     setMessage("");
     setError("");
 
-    if (values.newPassword.length < 6) {
-      setError("New password must contain at least 6 characters.");
-      return;
-    }
-    if (values.newPassword !== values.confirmPassword) {
+    if (values.newPassword !== values.confirmNewPassword) {
       setError("New password and confirmation do not match.");
       return;
     }
 
     setBusy(true);
+
     try {
-      await authApi.changePassword({
-        currentPassword: values.currentPassword,
-        newPassword: values.newPassword
+      const response = await authApi.changePassword(values);
+      setMessage(response.message);
+      setValues({
+        currentPassword: "",
+        newPassword: "",
+        confirmNewPassword: "",
       });
-      setMessage("Password changed successfully.");
-      setValues({ currentPassword: "", newPassword: "", confirmPassword: "" });
     } catch (requestError) {
       setError(requestError.message);
     } finally {
@@ -49,7 +47,7 @@ export default function ChangePasswordPage() {
   };
 
   return (
-    <div className="page-stack narrow-page">
+    <div className="page-stack">
       <header className="page-header">
         <div>
           <span className="eyebrow">Account security</span>
@@ -58,13 +56,37 @@ export default function ChangePasswordPage() {
         </div>
       </header>
 
-      <form className="card account-form" onSubmit={submit}>
-        {message && <Alert type="success">{message}</Alert>}
-        {error && <Alert type="error">{error}</Alert>}
-        <FormField label="Current password" name="currentPassword" type="password" value={values.currentPassword} onChange={change} required />
-        <FormField label="New password" name="newPassword" type="password" value={values.newPassword} onChange={change} required />
-        <FormField label="Confirm new password" name="confirmPassword" type="password" value={values.confirmPassword} onChange={change} required />
-        <button className="button primary" disabled={busy}>{busy ? "Updating..." : "Change password"}</button>
+      {message && <Alert type="success">{message}</Alert>}
+      {error && <Alert type="error">{error}</Alert>}
+
+      <form className="card profile-password-form" onSubmit={submit}>
+        <FormField
+          label="Current password"
+          name="currentPassword"
+          type="password"
+          value={values.currentPassword}
+          onChange={change}
+          required
+        />
+        <FormField
+          label="New password"
+          name="newPassword"
+          type="password"
+          value={values.newPassword}
+          onChange={change}
+          required
+        />
+        <FormField
+          label="Confirm new password"
+          name="confirmNewPassword"
+          type="password"
+          value={values.confirmNewPassword}
+          onChange={change}
+          required
+        />
+        <button className="button primary" disabled={busy}>
+          {busy ? "Updating..." : "Change password"}
+        </button>
       </form>
     </div>
   );

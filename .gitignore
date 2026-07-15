@@ -4,6 +4,23 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+### Environment and secrets ###
+.env
+.env.*
+!.env.example
+application-local.properties
+
+### Frontend ###
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.env.local
+frontend/npm-debug.log*
+
+### Logs ###
+logs/
+*.log
+
 ### STS ###
 .apt_generated
 .classpath

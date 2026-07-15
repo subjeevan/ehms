@@ -79,8 +79,8 @@ data class PatientRequest(
         message = "Contact number is required"
     )
     @field:Pattern(
-        regexp = "^[0-9]{8,25}$",
-        message = "Contact number must contain between 8 and 25 digits"
+        regexp = "^[0-9]{8,10}$",
+        message = "Contact number must contain between 8 and 10 digits"
     )
     val contactNumber: String = "",
 

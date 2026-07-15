@@ -1,9 +1,10 @@
 import "./globals.css";
+import "./enhancements.css";
 import { AuthProvider } from "@/context/AuthContext";
 
 export const metadata = {
-  title: "Vision HMS",
-  description: "Hospital Management System"
+  title: "Vision HMS | jacksoft.pvt.ltd",
+  description: "Hospital Management System",
 };
 
 export default function RootLayout({ children }) {

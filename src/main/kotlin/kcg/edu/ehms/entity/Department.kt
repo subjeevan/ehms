@@ -3,8 +3,7 @@ package kcg.edu.ehms.entity
 import jakarta.persistence.*
 
 /**
- * Department entity representing a hospital department in the EHMS system.
- * Stores department information and maintains many-to-many relationship with doctors.
+ * Hospital department configured from the Setup menu.
  */
 @Entity
 @Table(name = "departments")
@@ -20,5 +19,8 @@ class Department(
     var description: String = "",
 
     @ManyToMany(mappedBy = "departments", fetch = FetchType.LAZY)
-    var doctors: MutableSet<Doctor> = mutableSetOf()
+    var doctors: MutableSet<Doctor> = mutableSetOf(),
+
+    @OneToMany(mappedBy = "department", fetch = FetchType.LAZY)
+    var users: MutableSet<User> = mutableSetOf()
 )
