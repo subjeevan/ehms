@@ -77,8 +77,8 @@ export default function AppLayout({ children }) {
         <div className="brand">
           <div className="brand-mark">H</div>
           <div>
-            <strong>Vision HMS</strong>
-            <span>Hospital Management</span>
+            <strong>Subedi Jeevan (M25W7486)</strong>
+            <span>Hospital Management System</span>
           </div>
         </div>
 
@@ -105,17 +105,7 @@ export default function AppLayout({ children }) {
               {navLink("/users", "User Management", "♙")}
             </>
           )}
-
-          <span className="nav-label">Account</span>
-          <button
-            type="button"
-            className="sidebar-link sidebar-button-link"
-            onClick={() => setProfileOpen(true)}
-          >
-            <span className="nav-icon">●</span>
-            My profile
-          </button>
-        </nav>
+     </nav>
 
         <div className="sidebar-footer">
           <button
@@ -154,9 +144,7 @@ export default function AppLayout({ children }) {
             ☰
           </button>
           <span className="topbar-label">Secure clinical workspace</span>
-          <div className="status-dot">
-            <span /> API connected
-          </div>
+
         </header>
 
         <main className="page-content">{children}</main>

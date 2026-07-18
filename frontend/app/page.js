@@ -15,8 +15,8 @@ export default function HomePage() {
         <div className="public-brand">
           <span className="public-brand-mark">J</span>
           <div>
-            <strong>jacksoft.pvt.ltd</strong>
-            <small>Healthcare software solutions</small>
+            <strong>Project By Jeevan Subedi</strong>
+            <small>M25W7486</small>
           </div>
         </div>
 
@@ -40,10 +40,10 @@ export default function HomePage() {
 
       <section className="public-home-hero">
         <div className="public-home-copy">
-          <span className="eyebrow">Hospital management platform</span>
-          <h1>Connected patient care in one secure workspace.</h1>
+          <span className="eyebrow">Hospital Management system</span>
+          <h1>Patient registration and management in one place</h1>
           <p>
-            Vision HMS supports patient registration, billing, departments,
+            It provides patient registration, billing, departments,
             doctors, role-based users, dashboards, charts and operational
             reporting through a Kotlin Spring Boot and Next.js application.
           </p>
@@ -67,7 +67,7 @@ export default function HomePage() {
 
         <div className="public-home-panel card">
           <span className="eyebrow">Developed by</span>
-          <h2>jacksoft.pvt.ltd</h2>
+          <h2>Jeevan Subedi (M25W7486)</h2>
           <p>
             Practical web systems for healthcare administration and patient
             service workflows.

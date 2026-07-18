@@ -3,8 +3,8 @@ import "./enhancements.css";
 import { AuthProvider } from "@/context/AuthContext";
 
 export const metadata = {
-  title: "Vision HMS | jacksoft.pvt.ltd",
-  description: "Hospital Management System",
+  title: "HMS | Project by Jeevan Subedi (M25W7486)",
+  description: "Patient Registration System",
 };
 
 export default function RootLayout({ children }) {
