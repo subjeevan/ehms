@@ -4,10 +4,7 @@ import jakarta.persistence.*
 import java.math.BigDecimal
 import java.time.LocalDate
 
-/**
- * InsuranceDetail entity storing patient insurance information.
- * Maintains one-to-one relationship with Patient entity.
- */
+/** Insurance information recorded for an insurance visit. */
 @Entity
 @Table(name = "insurance_details")
 class InsuranceDetail(
@@ -18,7 +15,7 @@ class InsuranceDetail(
     @Column(nullable = false, length = 120)
     var provider: String = "",
 
-    @Column(nullable = false, unique = true, length = 100)
+    @Column(nullable = false, length = 100)
     var policyNumber: String = "",
 
     @Column(nullable = false, precision = 12, scale = 2)

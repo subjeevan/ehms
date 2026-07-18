@@ -8,19 +8,11 @@ import org.springframework.data.repository.query.Param
 import java.time.LocalDate
 
 interface BillRepository : JpaRepository<Bill, Long> {
-
-    fun findAllByPatientIdOrderByBillDateDesc(patientId: Long): List<Bill>
-
+    fun findAllByVisitPatientIdOrderByBillDateDesc(patientId: Long): List<Bill>
+    fun findAllByVisitIdOrderByBillDateDesc(visitId: Long): List<Bill>
     fun findAllByPaymentStatus(paymentStatus: PaymentStatus): List<Bill>
 
-    @Query(
-        """
-        select b
-        from Bill b
-        where b.paymentStatus = :status
-          and b.billDate = :date
-        """
-    )
+    @Query("select b from Bill b where b.paymentStatus = :status and b.billDate = :date")
     fun findByDateAndStatus(
         @Param("date") date: LocalDate,
         @Param("status") status: PaymentStatus
@@ -28,8 +20,7 @@ interface BillRepository : JpaRepository<Bill, Long> {
 
     @Query(
         """
-        select b
-        from Bill b
+        select b from Bill b
         where b.paymentStatus = :status
           and b.billDate between :startDate and :endDate
         """

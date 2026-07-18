@@ -4,20 +4,17 @@ import jakarta.persistence.*
 import java.math.BigDecimal
 import java.time.LocalDate
 
-/**
- * Bill entity representing a patient billing record in the EHMS system.
- * Stores billing information including amount, date, payment status, bill type and description for each patient.
- */
+/** Billing information belonging to one patient visit. */
 @Entity
-@Table(name = "bills", indexes = [Index(name = "idx_bill_patient", columnList = "patient_id")])
+@Table(name = "bills", indexes = [Index(name = "idx_bill_visit", columnList = "visit_id")])
 class Bill(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null,
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "patient_id", nullable = false)
-    var patient: Patient? = null,
+    @JoinColumn(name = "visit_id", nullable = false, foreignKey = ForeignKey(name = "fk_bill_visit"))
+    var visit: PatientVisit? = null,
 
     @Column(nullable = false, precision = 12, scale = 2)
     var amount: BigDecimal = BigDecimal.ZERO,
@@ -33,6 +30,6 @@ class Bill(
     @Column(name = "bill_type", nullable = false, length = 20)
     var billType: BillType = BillType.OTHER,
 
-    @Column(nullable = true, length = 500)
+    @Column(length = 500)
     var description: String? = null
 )

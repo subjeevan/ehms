@@ -339,3 +339,342 @@
     flex-direction: column;
   }
 }
+/* Compact one-window patient registration */
+.registration-page {
+  height: calc(100dvh - 108px);
+  min-height: 590px;
+}
+
+.registration-window {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: hidden;
+  padding: 14px 16px;
+}
+
+.registration-window-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  flex: 0 0 auto;
+}
+
+.registration-window-header h1 {
+  margin: 2px 0 0;
+  font-size: clamp(1.35rem, 2vw, 1.85rem);
+}
+
+.registration-mode-tabs {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 11px;
+  background: #edf3f5;
+}
+
+.registration-mode-tabs button {
+  border: 0;
+  border-radius: 8px;
+  padding: 8px 14px;
+  background: transparent;
+  color: #5d7078;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.registration-mode-tabs button.active {
+  background: #ffffff;
+  color: #0f6b78;
+  box-shadow: 0 3px 12px rgba(15, 107, 120, 0.14);
+}
+
+.registration-columns {
+  min-height: 0;
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(390px, 0.92fr);
+  gap: 12px;
+}
+
+.registration-pane {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  overflow: hidden;
+  padding: 12px;
+  border: 1px solid #dce7ea;
+  border-radius: 14px;
+  background: #f9fcfd;
+}
+
+.registration-pane-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 0 0 auto;
+}
+
+.registration-pane-heading h2 {
+  margin: 2px 0 0;
+  font-size: 1rem;
+}
+
+.registration-compact-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 10px;
+}
+
+.registration-span-2 {
+  grid-column: 1 / -1;
+}
+
+.registration-window .form-field {
+  gap: 3px;
+}
+
+.registration-window .form-field label {
+  font-size: 0.72rem;
+  line-height: 1.1;
+}
+
+.registration-window .form-field input,
+.registration-window .form-field select,
+.registration-window .form-field textarea {
+  min-height: 35px;
+  padding: 7px 9px;
+  border-radius: 8px;
+  font-size: 0.86rem;
+}
+
+.registration-window .form-field textarea {
+  min-height: 48px;
+  max-height: 48px;
+  resize: none;
+}
+
+.registration-window .field-error {
+  font-size: 0.66rem;
+  line-height: 1.05;
+}
+
+.patient-lookup-row {
+  display: grid;
+  grid-template-columns: 0.82fr 1.5fr auto;
+  align-items: end;
+  gap: 8px;
+}
+
+.lookup-button {
+  min-height: 35px;
+  padding: 7px 14px;
+  white-space: nowrap;
+}
+
+.returning-patient-panel {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.selected-patient-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  padding: 9px;
+  border: 1px solid #cfe3e6;
+  border-radius: 10px;
+  background: #eef8f9;
+}
+
+.selected-patient-summary > div {
+  min-width: 0;
+}
+
+.selected-patient-summary span,
+.charge-display span {
+  display: block;
+  color: #667b85;
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.selected-patient-summary strong {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.78rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.selected-patient-placeholder {
+  display: grid;
+  place-items: center;
+  min-height: 88px;
+  padding: 12px;
+  border: 1px dashed #bfd4d8;
+  border-radius: 10px;
+  color: #6b7f87;
+  background: #f5f9fa;
+  font-size: 0.82rem;
+  text-align: center;
+}
+
+.charge-display {
+  min-height: 58px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 8px 10px;
+  border: 1px solid #b9dfe3;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #e9f8f9, #f8fcfc);
+}
+
+.charge-display strong {
+  margin: 2px 0;
+  color: #0d6773;
+  font-size: 1rem;
+}
+
+.charge-display small,
+.registration-submit-row small {
+  display: block;
+  color: #6c8088;
+  font-size: 0.68rem;
+}
+
+.insurance-compact-block {
+  display: grid;
+  gap: 7px;
+  padding-top: 3px;
+  border-top: 1px solid #dce7ea;
+}
+
+.registration-mini-heading {
+  color: #405760;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.registration-inline-note {
+  margin: 0;
+  color: #9b641b;
+  font-size: 0.72rem;
+}
+
+.registration-submit-row {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 9px;
+  border-top: 1px solid #dce7ea;
+}
+
+.registration-submit-row strong {
+  display: block;
+  font-size: 0.78rem;
+}
+
+.registration-submit-row .button {
+  min-width: 145px;
+  justify-content: center;
+}
+
+@media (max-height: 720px) and (min-width: 1001px) {
+  .registration-page {
+    min-height: 520px;
+  }
+
+  .registration-window {
+    gap: 7px;
+    padding: 10px 12px;
+  }
+
+  .registration-pane {
+    gap: 6px;
+    padding: 9px;
+  }
+
+  .registration-window .form-field input,
+  .registration-window .form-field select,
+  .registration-window .form-field textarea {
+    min-height: 31px;
+    padding: 5px 8px;
+  }
+
+  .registration-window .form-field textarea {
+    min-height: 36px;
+    max-height: 36px;
+  }
+
+  .selected-patient-summary {
+    gap: 5px;
+    padding: 7px;
+  }
+}
+
+@media (max-width: 1000px) {
+  .registration-page {
+    height: auto;
+    min-height: 0;
+  }
+
+  .registration-window {
+    height: auto;
+    overflow: visible;
+  }
+
+  .registration-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .registration-pane {
+    overflow: visible;
+  }
+}
+
+@media (max-width: 640px) {
+  .registration-window-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .registration-mode-tabs {
+    width: 100%;
+  }
+
+  .registration-mode-tabs button {
+    flex: 1;
+  }
+
+  .registration-compact-grid,
+  .selected-patient-summary,
+  .patient-lookup-row {
+    grid-template-columns: 1fr;
+  }
+
+  .registration-span-2 {
+    grid-column: auto;
+  }
+
+  .registration-submit-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .registration-submit-row .button {
+    width: 100%;
+  }
+}

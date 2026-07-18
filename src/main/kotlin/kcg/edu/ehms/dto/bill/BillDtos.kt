@@ -1,9 +1,9 @@
 package kcg.edu.ehms.dto.bill
 
-import kcg.edu.ehms.entity.BillType
-import kcg.edu.ehms.entity.PaymentStatus
 import jakarta.validation.constraints.DecimalMin
 import jakarta.validation.constraints.NotNull
+import kcg.edu.ehms.entity.BillType
+import kcg.edu.ehms.entity.PaymentStatus
 import java.math.BigDecimal
 import java.time.LocalDate
 
@@ -21,7 +21,9 @@ data class BillRequest(
 
 data class BillResponse(
     val id: Long,
+    val visitId: Long,
     val patientId: Long,
+    val medicalRecordNumber: String,
     val patientName: String,
     val amount: BigDecimal,
     val billDate: LocalDate,

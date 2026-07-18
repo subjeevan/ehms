@@ -1,123 +1,61 @@
 package kcg.edu.ehms.service
 
-import kcg.edu.ehms.dto.bill.BillResponse
-import kcg.edu.ehms.dto.charge.PatientRegistrationResponse
 import kcg.edu.ehms.dto.common.PageResponse
 import kcg.edu.ehms.dto.patient.*
+import kcg.edu.ehms.dto.visit.PatientVisitListResponse
+import kcg.edu.ehms.dto.visit.VisitResponse
 import kcg.edu.ehms.entity.*
 import kcg.edu.ehms.exception.BusinessValidationException
-import kcg.edu.ehms.exception.DuplicateEntryException
 import kcg.edu.ehms.exception.ResourceNotFoundException
-import kcg.edu.ehms.repository.BillRepository
-import kcg.edu.ehms.repository.DoctorRepository
-import kcg.edu.ehms.repository.InsuranceDetailRepository
 import kcg.edu.ehms.repository.PatientRepository
+import kcg.edu.ehms.repository.PatientVisitRepository
 import kcg.edu.ehms.specification.PatientSpecifications
+import kcg.edu.ehms.specification.PatientVisitSpecifications
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
-import java.time.LocalDate
+import java.time.LocalDateTime
+import java.util.UUID
 
 @Service
 class PatientService(
     private val patientRepository: PatientRepository,
-    private val insuranceDetailRepository: InsuranceDetailRepository,
-    private val billRepository: BillRepository,
-    private val patientTypeChargeService: PatientTypeChargeService,
-    private val doctorRepository: DoctorRepository
+    private val patientVisitRepository: PatientVisitRepository
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
-    private val allowedSorts = setOf("id", "fullName", "gender", "dateOfBirth", "patientType", "registeredAt")
+    private val allowedSorts = setOf(
+        "id", "medicalRecordNumber", "fullName", "gender", "dateOfBirth", "registeredAt", "updatedAt"
+    )
+
+    private val visitSorts = mapOf(
+        "id" to "id",
+        "visitDate" to "visitDate",
+        "patientId" to "patient.id",
+        "patientName" to "patient.fullName",
+        "patientType" to "patientType",
+        "patientStatus" to "patientStatus",
+        "registeredBy" to "createdBy",
+        "createdAt" to "createdAt"
+    )
 
     @Transactional
     fun create(request: PatientRequest, actor: String): PatientResponse {
-        validateInsurance(request)
-        val assignedDoctor = resolveAssignedDoctor(request)
-
-        val patient = Patient()
-        applyRequest(patient, request, assignedDoctor)
-
-        val saved = patientRepository.save(patient)
-        log.info("Patient {} created by {}", saved.id, actor)
-        return saved.toResponse()
+        val patient = createEntity(request)
+        log.info("Patient {} with MRN {} created by {}", patient.id, patient.medicalRecordNumber, actor)
+        return mapToResponse(patient)
     }
 
-    @Transactional
-    fun createWithBilling(request: PatientRequest, actor: String): PatientRegistrationResponse {
-        validateInsurance(request)
-        val assignedDoctor = resolveAssignedDoctor(request)
+    /** Used by the registration transaction. MRN is generated after the first database insert. */
+    fun createEntity(request: PatientRequest): Patient {
+        val patient = Patient(medicalRecordNumber = temporaryMrn())
+        applyRequest(patient, request)
 
-        val patient = Patient()
-        applyRequest(patient, request, assignedDoctor)
-
-        val savedPatient = patientRepository.save(patient)
-        log.info("Patient {} created by {}", savedPatient.id, actor)
-
-        var bill: Bill? = null
-        val chargeAmount = patientTypeChargeService.tryGetChargeForPatientType(savedPatient.patientType)
-
-        if (chargeAmount != null) {
-            val paymentStatus = when (savedPatient.patientType) {
-                PatientType.INSURANCE -> PaymentStatus.PENDING
-                PatientType.GENERAL,
-                PatientType.PAYING -> PaymentStatus.PAID
-            }
-
-            bill = Bill(
-                patient = savedPatient,
-                amount = chargeAmount,
-                billDate = LocalDate.now(),
-                paymentStatus = paymentStatus,
-                billType = BillType.REGISTRATION,
-                description = "Patient registration charge - ${savedPatient.patientType}"
-            )
-
-            val savedBill = billRepository.save(bill)
-            savedPatient.bills.add(savedBill)
-            patientRepository.save(savedPatient)
-
-            log.info(
-                "Created registration bill {} for patient {} with amount {}",
-                savedBill.id,
-                savedPatient.id,
-                chargeAmount
-            )
-        } else {
-            log.info(
-                "Registration billing skipped for patient {} because {} charge is disabled",
-                savedPatient.id,
-                savedPatient.patientType
-            )
-        }
-
-        val patientResponse = savedPatient.toResponse()
-        val billResponse = bill?.let {
-            BillResponse(
-                id = it.id!!,
-                patientId = it.patient!!.id!!,
-                patientName = it.patient!!.fullName,
-                amount = it.amount,
-                billDate = it.billDate,
-                paymentStatus = it.paymentStatus,
-                billType = it.billType,
-                description = it.description
-            )
-        }
-
-        val message = if (billResponse != null) {
-            "Patient registered and registration bill created successfully"
-        } else {
-            "Patient registered successfully. No registration bill was created because automatic billing is disabled."
-        }
-
-        return PatientRegistrationResponse(
-            patient = patientResponse,
-            bill = billResponse,
-            message = message
-        )
+        val inserted = patientRepository.saveAndFlush(patient)
+        inserted.medicalRecordNumber = generateMrn(inserted)
+        return patientRepository.save(inserted)
     }
 
     @Transactional(readOnly = true)
@@ -136,163 +74,272 @@ class PatientService(
 
         val result = patientRepository
             .findAll(PatientSpecifications.search(search), pageable)
-            .map { it.toResponse() }
+            .map { mapToResponse(it) }
 
         return PageResponse.from(result)
     }
 
     @Transactional(readOnly = true)
-    fun get(id: Long): PatientResponse = find(id).toResponse()
+    fun listVisits(
+        page: Int,
+        size: Int,
+        search: String?,
+        sortBy: String,
+        sortDir: String
+    ): PageResponse<PatientVisitListResponse> {
+        val safePage = page.coerceAtLeast(0)
+        val safeSize = size.coerceIn(1, 100)
+        val safeSort = visitSorts[sortBy] ?: "visitDate"
+        val direction = if (sortDir.equals("asc", true)) Sort.Direction.ASC else Sort.Direction.DESC
+        val pageable = PageRequest.of(safePage, safeSize, Sort.by(direction, safeSort).and(Sort.by(Sort.Direction.DESC, "createdAt")))
+
+        val result = patientVisitRepository
+            .findAll(PatientVisitSpecifications.search(search), pageable)
+            .map { mapVisitListResponse(it) }
+
+        return PageResponse.from(result)
+    }
+
+    @Transactional(readOnly = true)
+    fun exportVisits(
+        search: String?,
+        sortBy: String,
+        sortDir: String
+    ): List<PatientVisitListResponse> {
+        val safeSort = visitSorts[sortBy] ?: "visitDate"
+        val direction = if (sortDir.equals("asc", true)) Sort.Direction.ASC else Sort.Direction.DESC
+        val sort = Sort.by(direction, safeSort).and(Sort.by(Sort.Direction.DESC, "createdAt"))
+
+        return patientVisitRepository
+            .findAll(PatientVisitSpecifications.search(search), sort)
+            .map { mapVisitListResponse(it) }
+    }
+
+    @Transactional(readOnly = true)
+    fun lookup(type: PatientLookupType, rawValue: String): List<PatientResponse> {
+        val value = rawValue.trim()
+        if (value.isBlank()) {
+            throw BusinessValidationException(
+                "Search value is required",
+                mapOf("lookupValue" to "Enter a value to search")
+            )
+        }
+
+        val patients = when (type) {
+            PatientLookupType.PATIENT_ID -> {
+                val id = value.toLongOrNull()
+                    ?: throw BusinessValidationException(
+                        "Patient ID must be a number",
+                        mapOf("lookupValue" to "Enter a valid numeric patient ID")
+                    )
+
+                patientRepository.findById(id)
+                    .map { listOf(it) }
+                    .orElse(emptyList())
+            }
+
+            PatientLookupType.MRN ->
+                listOfNotNull(patientRepository.findByMedicalRecordNumberIgnoreCase(value))
+
+            PatientLookupType.MOBILE -> {
+                if (!value.matches(Regex("^[0-9]{8,10}$"))) {
+                    throw BusinessValidationException(
+                        "Mobile number must contain between 8 and 10 digits",
+                        mapOf("lookupValue" to "Enter an 8 to 10 digit mobile number")
+                    )
+                }
+                patientRepository.findAllByContactNumberOrderByFullNameAsc(value)
+            }
+
+            PatientLookupType.INSURANCE_NUMBER ->
+                patientRepository.findDistinctByInsurancePolicyNumber(value)
+        }
+
+        if (patients.isEmpty()) {
+            throw ResourceNotFoundException("No patient was found for the supplied ${type.displayName()}")
+        }
+
+        return patients
+            .distinctBy { it.id }
+            .sortedWith(compareBy<Patient> { it.fullName.lowercase() }.thenBy { it.id })
+            .map { mapToResponse(it) }
+    }
+
+    @Transactional(readOnly = true)
+    fun get(id: Long): PatientResponse = mapToResponse(findEntity(id))
+
+    @Transactional(readOnly = true)
+    fun getByMrn(mrn: String): PatientResponse = mapToResponse(findEntityByMrn(mrn))
+
+    @Transactional(readOnly = true)
+    fun visits(patientId: Long): List<VisitResponse> {
+        findEntity(patientId)
+        return patientVisitRepository
+            .findAllByPatientIdOrderByVisitDateDescCreatedAtDesc(patientId)
+            .map { mapVisit(it) }
+    }
 
     @Transactional
     fun update(id: Long, request: PatientRequest, actor: String): PatientResponse {
-        validateInsurance(request, id)
-        val assignedDoctor = resolveAssignedDoctor(request)
-
-        val patient = find(id)
-        applyRequest(patient, request, assignedDoctor)
-
+        val patient = findEntity(id)
+        applyRequest(patient, request)
         val saved = patientRepository.save(patient)
-        log.info("Patient {} updated by {}", id, actor)
-        return saved.toResponse()
+        log.info("Patient {} demographic information updated by {}", id, actor)
+        return mapToResponse(saved)
     }
 
     @Transactional
     fun delete(id: Long, actor: String) {
-        val patient = find(id)
-        patientRepository.delete(patient)
+        patientRepository.delete(findEntity(id))
         log.warn("Patient {} deleted by {}", id, actor)
     }
 
-    private fun find(id: Long): Patient = patientRepository.findById(id)
+    fun findEntity(id: Long): Patient = patientRepository.findById(id)
         .orElseThrow { ResourceNotFoundException("Patient with ID $id was not found") }
 
-    private fun validateInsurance(request: PatientRequest, patientId: Long? = null) {
-        if (request.patientType == PatientType.INSURANCE && request.insuranceDetail == null) {
-            throw BusinessValidationException(
-                "Insurance information is required",
-                mapOf("insuranceDetail" to "Insurance details are required for insurance patients")
-            )
-        }
+    fun findEntityByMrn(mrn: String): Patient = patientRepository
+        .findByMedicalRecordNumberIgnoreCase(mrn.trim())
+        ?: throw ResourceNotFoundException("Patient with MRN ${mrn.trim()} was not found")
 
-        val detail = request.insuranceDetail ?: return
+    fun mapToResponse(patient: Patient): PatientResponse {
+        val visits = patient.visits
+        val latestVisit = visits.maxWithOrNull(
+            compareBy<PatientVisit> { it.visitDate }
+                .thenBy { it.createdAt }
+                .thenBy { it.id ?: 0L }
+        )
 
-        if (request.patientType != PatientType.INSURANCE) {
-            throw BusinessValidationException(
-                "Insurance information is not applicable",
-                mapOf("insuranceDetail" to "Insurance details are only allowed for insurance patients")
-            )
-        }
+        val amountPaid = visits
+            .flatMap { it.bills }
+            .filter { it.paymentStatus == PaymentStatus.PAID }
+            .fold(BigDecimal.ZERO) { total, bill -> total + bill.amount }
 
-        val currentInsuranceId = patientId
-            ?.let { patientRepository.findById(it).orElse(null)?.insuranceDetail?.id }
-
-        val duplicate = if (currentInsuranceId == null) {
-            insuranceDetailRepository.existsByPolicyNumber(detail.policyNumber.trim())
-        } else {
-            insuranceDetailRepository.existsByPolicyNumberAndIdNot(
-                detail.policyNumber.trim(),
-                currentInsuranceId
-            )
-        }
-
-        if (duplicate) {
-            throw DuplicateEntryException("Insurance policy number already exists")
-        }
-    }
-
-    private fun resolveAssignedDoctor(request: PatientRequest): Doctor? {
-        if (request.patientType != PatientType.PAYING) {
-            if (request.doctorId != null) {
-                throw BusinessValidationException(
-                    "Doctor selection is not applicable",
-                    mapOf("doctorId" to "A doctor can only be assigned to a paying patient")
+        return PatientResponse(
+            id = patient.id!!,
+            medicalRecordNumber = patient.medicalRecordNumber,
+            fullName = patient.fullName,
+            gender = patient.gender,
+            dateOfBirth = patient.dateOfBirth,
+            contactNumber = patient.contactNumber,
+            address = patient.address,
+            registeredAt = patient.registeredAt,
+            updatedAt = patient.updatedAt,
+            patientType = latestVisit?.patientType,
+            latestVisitId = latestVisit?.id,
+            latestVisitDate = latestVisit?.visitDate,
+            patientStatus = latestVisit?.patientStatus,
+            department = latestVisit?.department?.let { AssignedDepartmentResponse(it.id!!, it.name) },
+            assignedDoctor = latestVisit?.doctor?.let { doctor ->
+                AssignedDoctorResponse(
+                    id = doctor.id!!,
+                    fullName = doctor.fullName,
+                    specialization = doctor.specialization,
+                    departments = doctor.departments.sortedBy { it.name }.map { it.name }
                 )
-            }
-            return null
-        }
-
-        val doctorId = request.doctorId
-            ?: throw BusinessValidationException(
-                "Doctor selection is required",
-                mapOf("doctorId" to "Select a doctor for the paying patient")
-            )
-
-        val doctor = doctorRepository.findById(doctorId)
-            .orElseThrow { ResourceNotFoundException("Selected doctor was not found") }
-
-        if (doctor.departments.isEmpty()) {
-            throw BusinessValidationException(
-                "Doctor department is required",
-                mapOf("doctorId" to "The selected doctor must be linked to a department in Setup")
-            )
-        }
-
-        return doctor
+            },
+            insuranceDetail = latestVisit?.insuranceDetail?.toResponse(),
+            visitCount = visits.size,
+            amountPaid = amountPaid
+        )
     }
 
-    private fun applyRequest(
-        patient: Patient,
-        request: PatientRequest,
-        assignedDoctor: Doctor?
-    ) {
+    fun mapVisitListResponse(visit: PatientVisit): PatientVisitListResponse {
+        val patient = visit.patient!!
+        val bills = visit.bills
+        val billedAmount = bills.fold(BigDecimal.ZERO) { total, bill -> total + bill.amount }
+        val paidAmount = bills
+            .filter { it.paymentStatus == PaymentStatus.PAID }
+            .fold(BigDecimal.ZERO) { total, bill -> total + bill.amount }
+
+        val billingStatus = when {
+            bills.isEmpty() -> "NO_BILL"
+            bills.all { it.paymentStatus == PaymentStatus.PAID } -> "PAID"
+            bills.all { it.paymentStatus == PaymentStatus.PENDING } -> "PENDING"
+            else -> "MIXED"
+        }
+
+        return PatientVisitListResponse(
+            visitId = visit.id!!,
+            patientId = patient.id!!,
+            medicalRecordNumber = patient.medicalRecordNumber,
+            fullName = patient.fullName,
+            gender = patient.gender,
+            dateOfBirth = patient.dateOfBirth,
+            contactNumber = patient.contactNumber,
+            address = patient.address,
+            visitDate = visit.visitDate,
+            patientStatus = visit.patientStatus,
+            patientType = visit.patientType,
+            departmentName = visit.department!!.name,
+            doctorName = visit.doctor!!.fullName,
+            reasonForVisit = visit.reasonForVisit,
+            insuranceProvider = visit.insuranceDetail?.provider,
+            insuranceNumber = visit.insuranceDetail?.policyNumber,
+            registeredBy = visit.createdBy,
+            registeredAt = visit.createdAt,
+            billIds = bills.mapNotNull { it.id }.sorted(),
+            billedAmount = billedAmount,
+            paidAmount = paidAmount,
+            billingStatus = billingStatus
+        )
+    }
+
+    fun mapVisit(visit: PatientVisit): VisitResponse {
+        val patient = visit.patient!!
+        val doctor = visit.doctor!!
+        val department = visit.department!!
+
+        return VisitResponse(
+            id = visit.id!!,
+            patientId = patient.id!!,
+            medicalRecordNumber = patient.medicalRecordNumber,
+            patientName = patient.fullName,
+            visitDate = visit.visitDate,
+            patientStatus = visit.patientStatus,
+            patientType = visit.patientType,
+            department = AssignedDepartmentResponse(department.id!!, department.name),
+            doctor = AssignedDoctorResponse(
+                id = doctor.id!!,
+                fullName = doctor.fullName,
+                specialization = doctor.specialization,
+                departments = doctor.departments.sortedBy { it.name }.map { it.name }
+            ),
+            reasonForVisit = visit.reasonForVisit,
+            insuranceDetail = visit.insuranceDetail?.toResponse(),
+            createdBy = visit.createdBy,
+            createdAt = visit.createdAt
+        )
+    }
+
+    private fun applyRequest(patient: Patient, request: PatientRequest) {
         patient.fullName = request.fullName.trim()
         patient.gender = request.gender!!
         patient.dateOfBirth = request.dateOfBirth!!
         patient.contactNumber = request.contactNumber.trim()
         patient.address = request.address.trim()
-        patient.patientType = request.patientType!!
-        patient.assignedDoctor = assignedDoctor
-
-        if (request.patientType == PatientType.INSURANCE) {
-            val req = request.insuranceDetail!!
-            val detail = patient.insuranceDetail ?: InsuranceDetail()
-
-            detail.provider = req.provider.trim()
-            detail.policyNumber = req.policyNumber.trim()
-            detail.coverageAmount = req.coverageAmount!!
-            detail.expiryDate = req.expiryDate!!
-
-            patient.insuranceDetail = detail
-        } else {
-            patient.insuranceDetail = null
-        }
+        patient.updatedAt = LocalDateTime.now()
     }
 
-    private fun Patient.toResponse(): PatientResponse {
-        val amountPaid = bills
-            .filter { it.paymentStatus == PaymentStatus.PAID }
-            .fold(BigDecimal.ZERO) { acc, bill -> acc + bill.amount }
+    private fun temporaryMrn(): String = "TMP-${UUID.randomUUID().toString().replace("-", "").take(20)}"
 
-        return PatientResponse(
-            id = id!!,
-            fullName = fullName,
-            gender = gender,
-            dateOfBirth = dateOfBirth,
-            contactNumber = contactNumber,
-            address = address,
-            patientType = patientType,
-            registeredAt = registeredAt,
-            assignedDoctor = assignedDoctor?.let { doctor ->
-                AssignedDoctorResponse(
-                    id = doctor.id!!,
-                    fullName = doctor.fullName,
-                    specialization = doctor.specialization,
-                    departments = doctor.departments
-                        .sortedBy { it.name }
-                        .map { it.name }
-                )
-            },
-            insuranceDetail = insuranceDetail?.let {
-                InsuranceDetailResponse(
-                    it.id!!,
-                    it.provider,
-                    it.policyNumber,
-                    it.coverageAmount,
-                    it.expiryDate
-                )
-            },
-            amountPaid = amountPaid
-        )
+    private fun generateMrn(patient: Patient): String {
+        val year = patient.registeredAt.year
+        val number = patient.id!!.toString().padStart(6, '0')
+        return "EHMS-$year-$number"
     }
+
+    private fun PatientLookupType.displayName(): String = when (this) {
+        PatientLookupType.PATIENT_ID -> "patient ID"
+        PatientLookupType.MRN -> "MRN"
+        PatientLookupType.MOBILE -> "mobile number"
+        PatientLookupType.INSURANCE_NUMBER -> "insurance number"
+    }
+
+    private fun InsuranceDetail.toResponse() = InsuranceDetailResponse(
+        id = id!!,
+        provider = provider,
+        policyNumber = policyNumber,
+        coverageAmount = coverageAmount,
+        expiryDate = expiryDate
+    )
 }

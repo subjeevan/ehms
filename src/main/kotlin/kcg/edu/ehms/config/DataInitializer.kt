@@ -19,6 +19,8 @@ class DataInitializer(
     private val departmentRepository: DepartmentRepository,
     private val doctorRepository: DoctorRepository,
     private val patientRepository: PatientRepository,
+    private val patientVisitRepository: PatientVisitRepository,
+    private val billRepository: BillRepository,
     private val settingRepository: SystemSettingRepository,
     private val patientTypeChargeRepository: PatientTypeChargeRepository,
     private val passwordEncoder: PasswordEncoder
@@ -34,24 +36,14 @@ class DataInitializer(
 
         if (departmentRepository.count() == 0L) {
             val outpatient = departmentRepository.save(
-                Department(
-                    name = "Outpatient Department",
-                    description = "General outpatient consultations"
-                )
+                Department(name = "Outpatient Department", description = "General outpatient consultations")
             )
             val emergency = departmentRepository.save(
-                Department(
-                    name = "Emergency",
-                    description = "Emergency and urgent care services"
-                )
+                Department(name = "Emergency", description = "Emergency and urgent care services")
             )
             val ophthalmology = departmentRepository.save(
-                Department(
-                    name = "Ophthalmology",
-                    description = "Eye care and ophthalmic procedures"
-                )
+                Department(name = "Ophthalmology", description = "Eye care and ophthalmic procedures")
             )
-
             doctorRepository.save(
                 Doctor(
                     fullName = "Dr. Asha Sharma",
@@ -70,115 +62,24 @@ class DataInitializer(
             )
         }
 
-        val defaultDepartment = departmentRepository.findAll()
-            .sortedBy { it.id }
-            .firstOrNull()
-
-        val admin = userRepository.findByUsername("admin")
-            ?: userRepository.save(
-                User(
-                    username = "admin",
-                    password = requireNotNull(
-                        passwordEncoder.encode("Admin@123")
-                    ),
-                    roles = mutableSetOf(adminRole, userRole)
-                )
-            )
-
-        backfillProfile(
-            user = admin,
-            firstName = "System",
-            lastName = "Administrator",
-            contactNumber = "0755550101",
-            gender = Gender.MALE,
-            dateOfBirth = LocalDate.of(1990, 1, 1),
-            department = defaultDepartment
+        val defaultDepartment = departmentRepository.findAll().sortedBy { it.id }.firstOrNull()
+        val admin = userRepository.findByUsername("admin") ?: userRepository.save(
+            User(username = "admin", password = requireNotNull(passwordEncoder.encode("Admin@123")), roles = mutableSetOf(adminRole, userRole))
         )
+        backfillProfile(admin, "System", "Administrator", "0755550101", Gender.MALE, LocalDate.of(1990, 1, 1), defaultDepartment)
 
-        val normalUser = userRepository.findByUsername("user")
-            ?: userRepository.save(
-                User(
-                    username = "user",
-                    password = requireNotNull(
-                        passwordEncoder.encode("User@123")
-                    ),
-                    roles = mutableSetOf(userRole)
-                )
-            )
-
-        backfillProfile(
-            user = normalUser,
-            firstName = "Demo",
-            lastName = "User",
-            contactNumber = "0755550102",
-            gender = Gender.FEMALE,
-            dateOfBirth = LocalDate.of(1995, 1, 1),
-            department = defaultDepartment
+        val normalUser = userRepository.findByUsername("user") ?: userRepository.save(
+            User(username = "user", password = requireNotNull(passwordEncoder.encode("User@123")), roles = mutableSetOf(userRole))
         )
+        backfillProfile(normalUser, "Demo", "User", "0755550102", Gender.FEMALE, LocalDate.of(1995, 1, 1), defaultDepartment)
 
         if (patientRepository.count() == 0L) {
-            val general = Patient(
-                fullName = "Sita Karki",
-                gender = Gender.FEMALE,
-                dateOfBirth = LocalDate.of(1992, 4, 18),
-                contactNumber = "98410001",
-                address = "Kathmandu, Nepal",
-                patientType = PatientType.GENERAL
-            )
-            general.bills += Bill(
-                patient = general,
-                amount = BigDecimal("2500.00"),
-                billDate = LocalDate.now(),
-                paymentStatus = PaymentStatus.PAID,
-                billType = BillType.CONSULTATION,
-                description = "Initial consultation"
-            )
-            patientRepository.save(general)
-
-            patientRepository.save(
-                Patient(
-                    fullName = "Ramesh Thapa",
-                    gender = Gender.MALE,
-                    dateOfBirth = LocalDate.of(1986, 8, 12),
-                    contactNumber = "98410002",
-                    address = "Pokhara, Nepal",
-                    patientType = PatientType.PAYING
-                )
-            )
-
-            patientRepository.save(
-                Patient(
-                    fullName = "Maya Gurung",
-                    gender = Gender.FEMALE,
-                    dateOfBirth = LocalDate.of(1979, 1, 7),
-                    contactNumber = "98410003",
-                    address = "Bharatpur, Nepal",
-                    patientType = PatientType.INSURANCE,
-                    insuranceDetail = InsuranceDetail(
-                        provider = "National Health Insurance",
-                        policyNumber = "NHI-DEMO-1001",
-                        coverageAmount = BigDecimal("100000.00"),
-                        expiryDate = LocalDate.now().plusYears(1)
-                    )
-                )
-            )
+            createDemoPatients()
         }
 
         if (settingRepository.count() == 0L) {
-            settingRepository.save(
-                SystemSetting(
-                    settingKey = "hospital.name",
-                    settingValue = "Vision HMS Demo Hospital",
-                    description = "Hospital name displayed by the application"
-                )
-            )
-            settingRepository.save(
-                SystemSetting(
-                    settingKey = "hospital.timezone",
-                    settingValue = "Asia/Tokyo",
-                    description = "Default application timezone"
-                )
-            )
+            settingRepository.save(SystemSetting(settingKey = "hospital.name", settingValue = "Vision HMS Demo Hospital", description = "Hospital name displayed by the application"))
+            settingRepository.save(SystemSetting(settingKey = "hospital.timezone", settingValue = "Asia/Tokyo", description = "Default application timezone"))
         }
 
         if (patientTypeChargeRepository.count() == 0L) {
@@ -187,17 +88,90 @@ class DataInitializer(
                 PatientType.GENERAL to BigDecimal("200.00"),
                 PatientType.PAYING to BigDecimal("500.00"),
                 PatientType.INSURANCE to BigDecimal("100.00")
-            ).forEach { (patientType, amount) ->
+            ).forEach { (type, amount) ->
                 patientTypeChargeRepository.save(
-                    PatientTypeCharge(
-                        patientType = patientType,
-                        amount = amount,
-                        enabled = true,
-                        createdAt = now,
-                        updatedAt = now
-                    )
+                    PatientTypeCharge(patientType = type, amount = amount, enabled = true, createdAt = now, updatedAt = now)
                 )
             }
+        }
+    }
+
+    private fun createDemoPatients() {
+        val doctor = doctorRepository.findAll().firstOrNull() ?: return
+        val department = doctor.departments.firstOrNull() ?: return
+
+        createDemoPatient(
+            "Sita Karki", Gender.FEMALE, LocalDate.of(1992, 4, 18), "98410001", "Kathmandu, Nepal",
+            PatientType.GENERAL, department, doctor, BigDecimal("2500.00"), null
+        )
+        createDemoPatient(
+            "Ramesh Thapa", Gender.MALE, LocalDate.of(1986, 8, 12), "98410002", "Pokhara, Nepal",
+            PatientType.PAYING, department, doctor, null, null
+        )
+        createDemoPatient(
+            "Maya Gurung", Gender.FEMALE, LocalDate.of(1979, 1, 7), "98410003", "Bharatpur, Nepal",
+            PatientType.INSURANCE, department, doctor, null,
+            InsuranceDetail(
+                provider = "National Health Insurance",
+                policyNumber = "NHI-DEMO-1001",
+                coverageAmount = BigDecimal("100000.00"),
+                expiryDate = LocalDate.now().plusYears(1)
+            )
+        )
+    }
+
+    private fun createDemoPatient(
+        name: String,
+        gender: Gender,
+        dateOfBirth: LocalDate,
+        contact: String,
+        address: String,
+        type: PatientType,
+        department: Department,
+        doctor: Doctor,
+        billAmount: BigDecimal?,
+        insurance: InsuranceDetail?
+    ) {
+        val patient = patientRepository.saveAndFlush(
+            Patient(
+                medicalRecordNumber = "TMP-${System.nanoTime()}",
+                fullName = name,
+                gender = gender,
+                dateOfBirth = dateOfBirth,
+                contactNumber = contact,
+                address = address
+            )
+        )
+        patient.medicalRecordNumber = "EHMS-${patient.registeredAt.year}-${patient.id.toString().padStart(6, '0')}"
+        patientRepository.save(patient)
+
+        val visit = patientVisitRepository.save(
+            PatientVisit(
+                patient = patient,
+                visitDate = LocalDate.now(),
+                patientStatus = VisitPatientStatus.NEW,
+                patientType = type,
+                department = department,
+                doctor = doctor,
+                reasonForVisit = "Initial demonstration visit",
+                createdBy = "system",
+                insuranceDetail = insurance
+            )
+        )
+        patient.visits.add(visit)
+
+        if (billAmount != null) {
+            val bill = billRepository.save(
+                Bill(
+                    visit = visit,
+                    amount = billAmount,
+                    billDate = LocalDate.now(),
+                    paymentStatus = PaymentStatus.PAID,
+                    billType = BillType.CONSULTATION,
+                    description = "Initial consultation"
+                )
+            )
+            visit.bills.add(bill)
         }
     }
 
@@ -211,32 +185,12 @@ class DataInitializer(
         department: Department?
     ) {
         var changed = false
-
-        if (user.firstName.isNullOrBlank()) {
-            user.firstName = firstName
-            changed = true
-        }
-        if (user.lastName.isNullOrBlank()) {
-            user.lastName = lastName
-            changed = true
-        }
-        if (user.contactNumber.isNullOrBlank()) {
-            user.contactNumber = contactNumber
-            changed = true
-        }
-        if (user.gender == null) {
-            user.gender = gender
-            changed = true
-        }
-        if (user.dateOfBirth == null) {
-            user.dateOfBirth = dateOfBirth
-            changed = true
-        }
-        if (user.department == null && department != null) {
-            user.department = department
-            changed = true
-        }
-
+        if (user.firstName.isNullOrBlank()) { user.firstName = firstName; changed = true }
+        if (user.lastName.isNullOrBlank()) { user.lastName = lastName; changed = true }
+        if (user.contactNumber.isNullOrBlank()) { user.contactNumber = contactNumber; changed = true }
+        if (user.gender == null) { user.gender = gender; changed = true }
+        if (user.dateOfBirth == null) { user.dateOfBirth = dateOfBirth; changed = true }
+        if (user.department == null && department != null) { user.department = department; changed = true }
         if (changed) {
             userRepository.save(user)
             log.info("Backfilled profile for user {}", user.username)

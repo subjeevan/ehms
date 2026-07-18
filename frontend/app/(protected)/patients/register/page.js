@@ -1,31 +1,30 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import PatientForm from "@/components/PatientForm";
-import { patientApi } from "@/lib/api";
-import { emptyPatient } from "@/utils/patientValidation";
+import PatientRegistrationForm from "@/components/PatientRegistrationForm";
+import { registrationApi } from "@/lib/api";
 
 export default function PatientRegistrationPage() {
   const router = useRouter();
 
-  const create = async (values) => {
-    await patientApi.createWithBilling(values);
+  const finish = (result) => {
+    window.alert(
+      `${result.message}\nMRN: ${result.patient.medicalRecordNumber}\nVisit ID: ${result.visit.id}`,
+    );
     router.push("/patients?created=1");
   };
 
+  const registerNew = async (payload) =>
+    finish(await registrationApi.registerNew(payload));
+
+  const registerReturning = async (payload) =>
+    finish(await registrationApi.registerReturning(payload));
+
   return (
-    <div className="page-stack">
-      <header className="page-header">
-        <div>
-          <span className="eyebrow">Clinical intake</span>
-          <h1>Patient registration</h1>
-          <p>Create a patient record and registration billing entry.</p>
-        </div>
-      </header>
-      <PatientForm
-        initialValues={emptyPatient}
-        submitLabel="Register patient"
-        onSubmit={create}
+    <div className="registration-page">
+      <PatientRegistrationForm
+        onRegisterNew={registerNew}
+        onRegisterReturning={registerReturning}
       />
     </div>
   );

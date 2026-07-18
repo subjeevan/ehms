@@ -2,10 +2,6 @@ package kcg.edu.ehms.entity
 
 import jakarta.persistence.*
 
-/**
- * Doctor entity representing a healthcare professional in the EHMS system.
- * Stores doctor information including specialization and department assignments.
- */
 @Entity
 @Table(name = "doctors")
 class Doctor(
@@ -28,8 +24,5 @@ class Doctor(
         joinColumns = [JoinColumn(name = "doctor_id")],
         inverseJoinColumns = [JoinColumn(name = "department_id")]
     )
-    var departments: MutableSet<Department> = mutableSetOf(),
-
-    @OneToMany(mappedBy = "assignedDoctor", fetch = FetchType.LAZY)
-    var assignedPatients: MutableSet<Patient> = mutableSetOf()
+    var departments: MutableSet<Department> = mutableSetOf()
 )
