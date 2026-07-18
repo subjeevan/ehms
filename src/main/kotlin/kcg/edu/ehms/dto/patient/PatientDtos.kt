@@ -98,6 +98,8 @@ data class PatientRequest(
     )
     val patientType: PatientType? = null,
 
+    val doctorId: Long? = null,
+
     @field:Valid
     val insuranceDetail: InsuranceDetailRequest? = null
 )
@@ -110,6 +112,13 @@ data class InsuranceDetailResponse(
     val expiryDate: LocalDate
 )
 
+data class AssignedDoctorResponse(
+    val id: Long,
+    val fullName: String,
+    val specialization: String,
+    val departments: List<String>
+)
+
 data class PatientResponse(
     val id: Long,
     val fullName: String,
@@ -119,6 +128,7 @@ data class PatientResponse(
     val address: String,
     val patientType: PatientType,
     val registeredAt: LocalDateTime,
+    val assignedDoctor: AssignedDoctorResponse? = null,
     val insuranceDetail: InsuranceDetailResponse?,
     val amountPaid: BigDecimal = BigDecimal.ZERO
 )

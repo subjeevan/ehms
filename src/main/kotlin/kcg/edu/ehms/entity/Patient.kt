@@ -7,7 +7,7 @@ import java.time.LocalDateTime
 /**
  * Patient entity representing a patient record in the EHMS system.
  * Stores comprehensive patient information including personal details, contact info,
- * patient type, insurance details, and associated bills.
+ * patient type, assigned doctor, insurance details, and associated bills.
  */
 @Entity
 @Table(
@@ -15,7 +15,8 @@ import java.time.LocalDateTime
     indexes = [
         Index(name = "idx_patient_name", columnList = "full_name"),
         Index(name = "idx_patient_contact", columnList = "contact_number"),
-        Index(name = "idx_patient_type_gender", columnList = "patient_type,gender")
+        Index(name = "idx_patient_type_gender", columnList = "patient_type,gender"),
+        Index(name = "idx_patient_doctor", columnList = "doctor_id")
     ]
 )
 class Patient(
@@ -45,6 +46,13 @@ class Patient(
 
     @Column(name = "registered_at", nullable = false, updatable = false)
     var registeredAt: LocalDateTime = LocalDateTime.now(),
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(
+        name = "doctor_id",
+        foreignKey = ForeignKey(name = "fk_patient_doctor")
+    )
+    var assignedDoctor: Doctor? = null,
 
     @OneToOne(cascade = [CascadeType.ALL], orphanRemoval = true, fetch = FetchType.LAZY)
     @JoinColumn(name = "insurance_detail_id", unique = true)

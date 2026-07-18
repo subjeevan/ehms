@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import FormField from "@/components/FormField";
 import Alert from "@/components/Alert";
+import { doctorApi } from "@/lib/api";
 import {
   emptyInsuranceDetail,
   normalizePatient,
@@ -26,6 +27,7 @@ function getLocalToday() {
   const year = today.getFullYear();
   const month = String(today.getMonth() + 1).padStart(2, "0");
   const day = String(today.getDate()).padStart(2, "0");
+
   return `${year}-${month}-${day}`;
 }
 
@@ -35,13 +37,83 @@ export default function PatientForm({
   onSubmit,
   onCancel = null,
 }) {
-  const [values, setValues] = useState(() => normalizePatient(initialValues));
+  const [values, setValues] = useState(() =>
+    normalizePatient(initialValues),
+  );
   const [errors, setErrors] = useState({});
   const [requestError, setRequestError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [doctors, setDoctors] = useState([]);
+  const [doctorLoading, setDoctorLoading] = useState(true);
+  const [doctorLoadError, setDoctorLoadError] = useState("");
 
+  const isPaying = values.patientType === "PAYING";
   const isInsurance = values.patientType === "INSURANCE";
   const today = getLocalToday();
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadDoctors() {
+      setDoctorLoading(true);
+      setDoctorLoadError("");
+
+      try {
+        const data = await doctorApi.list();
+
+        if (!active) {
+          return;
+        }
+
+        setDoctors(
+          Array.isArray(data)
+            ? data
+            : Array.isArray(data?.content)
+              ? data.content
+              : [],
+        );
+      } catch (error) {
+        if (active) {
+          setDoctorLoadError(
+            error?.message || "Could not load doctors",
+          );
+        }
+      } finally {
+        if (active) {
+          setDoctorLoading(false);
+        }
+      }
+    }
+
+    loadDoctors();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const doctorOptions = doctors.map((doctor) => {
+    const departmentNames = Array.isArray(doctor.departments)
+      ? doctor.departments
+          .map((department) => department.name)
+          .filter(Boolean)
+          .join(", ")
+      : "";
+
+    const details = [
+      doctor.specialization,
+      departmentNames,
+    ]
+      .filter(Boolean)
+      .join(" — ");
+
+    return {
+      value: String(doctor.id),
+      label: details
+        ? `${doctor.fullName} — ${details}`
+        : doctor.fullName,
+    };
+  });
 
   const change = (event) => {
     const { name, value } = event.target;
@@ -53,7 +125,8 @@ export default function PatientForm({
         return {
           ...current,
           insuranceDetail: {
-            ...(current.insuranceDetail || emptyInsuranceDetail),
+            ...(current.insuranceDetail ||
+              emptyInsuranceDetail),
             [insuranceField]: value,
           },
         };
@@ -62,33 +135,74 @@ export default function PatientForm({
       if (name === "contactNumber") {
         return {
           ...current,
-          contactNumber: value.replace(/\D/g, "").slice(0, 10),
+          contactNumber: value
+            .replace(/\D/g, "")
+            .slice(0, 10),
         };
       }
 
       if (name === "dateOfBirth") {
         const yearPart = value.split("-")[0];
-        if (yearPart.length > 4) return current;
+
+        if (yearPart.length > 4) {
+          return current;
+        }
       }
 
-      const updatedValues = { ...current, [name]: value };
+      const updatedValues = {
+        ...current,
+        [name]: value,
+      };
 
-      if (name === "patientType" && value !== "INSURANCE") {
-        updatedValues.insuranceDetail = { ...emptyInsuranceDetail };
+      if (
+        name === "patientType" &&
+        value !== "INSURANCE"
+      ) {
+        updatedValues.insuranceDetail = {
+          ...emptyInsuranceDetail,
+        };
+      }
+
+      if (
+        name === "patientType" &&
+        value !== "PAYING"
+      ) {
+        updatedValues.doctorId = "";
       }
 
       return updatedValues;
     });
 
     setErrors((current) => {
-      const updatedErrors = { ...current };
+      const updatedErrors = {
+        ...current,
+      };
+
       delete updatedErrors[name];
 
-      if (name === "patientType" && value !== "INSURANCE") {
-        delete updatedErrors["insuranceDetail.provider"];
-        delete updatedErrors["insuranceDetail.policyNumber"];
-        delete updatedErrors["insuranceDetail.coverageAmount"];
-        delete updatedErrors["insuranceDetail.expiryDate"];
+      if (
+        name === "patientType" &&
+        value !== "INSURANCE"
+      ) {
+        delete updatedErrors[
+          "insuranceDetail.provider"
+        ];
+        delete updatedErrors[
+          "insuranceDetail.policyNumber"
+        ];
+        delete updatedErrors[
+          "insuranceDetail.coverageAmount"
+        ];
+        delete updatedErrors[
+          "insuranceDetail.expiryDate"
+        ];
+      }
+
+      if (
+        name === "patientType" &&
+        value !== "PAYING"
+      ) {
+        delete updatedErrors.doctorId;
       }
 
       return updatedErrors;
@@ -101,6 +215,7 @@ export default function PatientForm({
     event.preventDefault();
 
     const validationErrors = validatePatient(values);
+
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
@@ -114,24 +229,38 @@ export default function PatientForm({
       await onSubmit(toPatientPayload(values));
     } catch (error) {
       setErrors(error?.fieldErrors || {});
-      setRequestError(error?.message || "Patient registration failed");
+      setRequestError(
+        error?.message ||
+          "Patient registration failed",
+      );
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <form className="card patient-form" onSubmit={submit} noValidate>
+    <form
+      className="card patient-form"
+      onSubmit={submit}
+      noValidate
+    >
       <div className="section-heading">
         <div>
-          <span className="eyebrow">Demographic information</span>
+          <span className="eyebrow">
+            Demographic information
+          </span>
           <h2>Patient details</h2>
         </div>
-        <span className="required-note">* Required fields</span>
+        <span className="required-note">
+          * Required fields
+        </span>
       </div>
 
       {requestError && (
-        <Alert type="error" onClose={() => setRequestError("")}>
+        <Alert
+          type="error"
+          onClose={() => setRequestError("")}
+        >
           {requestError}
         </Alert>
       )}
@@ -145,6 +274,7 @@ export default function PatientForm({
           error={errors.fullName}
           required
         />
+
         <FormField
           label="Gender"
           name="gender"
@@ -154,6 +284,7 @@ export default function PatientForm({
           options={genderOptions}
           required
         />
+
         <FormField
           label="Date of birth"
           name="dateOfBirth"
@@ -164,6 +295,7 @@ export default function PatientForm({
           max={today}
           required
         />
+
         <FormField
           label="Contact number"
           name="contactNumber"
@@ -178,6 +310,7 @@ export default function PatientForm({
           placeholder="Enter 8 to 10 digits"
           required
         />
+
         <FormField
           label="Address"
           name="address"
@@ -187,6 +320,7 @@ export default function PatientForm({
           textarea
           required
         />
+
         <FormField
           label="Patient type"
           name="patientType"
@@ -198,11 +332,58 @@ export default function PatientForm({
         />
       </div>
 
+      {isPaying && (
+        <section className="nested-section">
+          <div className="section-heading compact">
+            <div>
+              <span className="eyebrow">
+                Consultation
+              </span>
+              <h3>Doctor assignment</h3>
+            </div>
+          </div>
+
+          {doctorLoadError && (
+            <Alert type="error">
+              {doctorLoadError}
+            </Alert>
+          )}
+
+          <div className="form-grid">
+            <FormField
+              label="Doctor"
+              name="doctorId"
+              value={values.doctorId}
+              onChange={change}
+              error={errors.doctorId}
+              options={doctorOptions}
+              disabled={
+                doctorLoading ||
+                doctorOptions.length === 0
+              }
+              required
+            />
+          </div>
+
+          {!doctorLoading &&
+            !doctorLoadError &&
+            doctorOptions.length === 0 && (
+              <p className="muted">
+                No doctors are configured. An
+                administrator must add a doctor and
+                select a department in Setup.
+              </p>
+            )}
+        </section>
+      )}
+
       {isInsurance && (
         <section className="nested-section">
           <div className="section-heading compact">
             <div>
-              <span className="eyebrow">Coverage</span>
+              <span className="eyebrow">
+                Coverage
+              </span>
               <h3>Insurance information</h3>
             </div>
           </div>
@@ -211,36 +392,67 @@ export default function PatientForm({
             <FormField
               label="Insurance provider"
               name="insuranceDetail.provider"
-              value={values.insuranceDetail?.provider || ""}
+              value={
+                values.insuranceDetail?.provider ||
+                ""
+              }
               onChange={change}
-              error={errors["insuranceDetail.provider"]}
+              error={
+                errors[
+                  "insuranceDetail.provider"
+                ]
+              }
               required
             />
+
             <FormField
               label="Policy number"
               name="insuranceDetail.policyNumber"
-              value={values.insuranceDetail?.policyNumber || ""}
+              value={
+                values.insuranceDetail
+                  ?.policyNumber || ""
+              }
               onChange={change}
-              error={errors["insuranceDetail.policyNumber"]}
+              error={
+                errors[
+                  "insuranceDetail.policyNumber"
+                ]
+              }
               required
             />
+
             <FormField
               label="Coverage amount"
               name="insuranceDetail.coverageAmount"
-              value={values.insuranceDetail?.coverageAmount || ""}
+              value={
+                values.insuranceDetail
+                  ?.coverageAmount || ""
+              }
               onChange={change}
-              error={errors["insuranceDetail.coverageAmount"]}
+              error={
+                errors[
+                  "insuranceDetail.coverageAmount"
+                ]
+              }
               type="number"
               min="0.01"
               step="0.01"
               required
             />
+
             <FormField
               label="Insurance expiry date"
               name="insuranceDetail.expiryDate"
-              value={values.insuranceDetail?.expiryDate || ""}
+              value={
+                values.insuranceDetail
+                  ?.expiryDate || ""
+              }
               onChange={change}
-              error={errors["insuranceDetail.expiryDate"]}
+              error={
+                errors[
+                  "insuranceDetail.expiryDate"
+                ]
+              }
               type="date"
               min={today}
               required
@@ -250,9 +462,14 @@ export default function PatientForm({
       )}
 
       <div className="form-actions">
-        <button type="submit" className="button primary" disabled={busy}>
+        <button
+          type="submit"
+          className="button primary"
+          disabled={busy}
+        >
           {busy ? "Saving..." : submitLabel}
         </button>
+
         {onCancel && (
           <button
             type="button"

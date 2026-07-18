@@ -15,7 +15,11 @@ data class DepartmentRequest(
     val description: String = ""
 )
 
-data class DepartmentResponse(val id: Long, val name: String, val description: String)
+data class DepartmentResponse(
+    val id: Long,
+    val name: String,
+    val description: String
+)
 
 data class DoctorRequest(
     @field:NotBlank(message = "Doctor name is required")
@@ -27,9 +31,16 @@ data class DoctorRequest(
     val specialization: String = "",
 
     @field:NotBlank(message = "Contact number is required")
-    @field:Pattern(regexp = "^[0-9+()\\-\\s]{7,25}$", message = "Contact number format is invalid")
+    @field:Pattern(
+        regexp = "^[0-9]{8,10}$",
+        message = "Contact number must contain between 8 and 10 digits"
+    )
     val contactNumber: String = "",
 
+    @field:Size(
+        min = 1,
+        message = "Select at least one department"
+    )
     val departmentIds: Set<Long> = emptySet()
 )
 

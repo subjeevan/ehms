@@ -12,25 +12,32 @@ export const emptyPatient = {
   contactNumber: "",
   address: "",
   patientType: "GENERAL",
-  insuranceDetail: { ...emptyInsuranceDetail },
+  doctorId: "",
+  insuranceDetail: {
+    ...emptyInsuranceDetail,
+  },
 };
 
 function getLocalDateString(date = new Date()) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
+
   return `${year}-${month}-${day}`;
 }
 
 function isValidCalendarDate(value) {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-  if (!match) return false;
+
+  if (!match) {
+    return false;
+  }
 
   const year = Number(match[1]);
   const month = Number(match[2]);
   const day = Number(match[3]);
-  const date = new Date(0);
 
+  const date = new Date(0);
   date.setUTCHours(0, 0, 0, 0);
   date.setUTCFullYear(year, month - 1, day);
 
@@ -49,6 +56,13 @@ export function normalizePatient(patient) {
     contactNumber: patient?.contactNumber || "",
     address: patient?.address || "",
     patientType: patient?.patientType || "GENERAL",
+    doctorId:
+      patient?.assignedDoctor?.id !== undefined &&
+      patient?.assignedDoctor?.id !== null
+        ? String(patient.assignedDoctor.id)
+        : patient?.doctorId !== undefined && patient?.doctorId !== null
+          ? String(patient.doctorId)
+          : "",
     insuranceDetail: {
       provider: patient?.insuranceDetail?.provider || "",
       policyNumber: patient?.insuranceDetail?.policyNumber || "",
@@ -91,10 +105,12 @@ export function validatePatient(values) {
   }
 
   const contactNumber = values.contactNumber?.trim() || "";
+
   if (!contactNumber) {
     errors.contactNumber = "Contact number is required";
   } else if (!contactPattern.test(contactNumber)) {
-    errors.contactNumber = "Contact number must contain between 8 and 10 digits";
+    errors.contactNumber =
+      "Contact number must contain between 8 and 10 digits";
   }
 
   if (!values.address?.trim()) {
@@ -107,18 +123,32 @@ export function validatePatient(values) {
     errors.patientType = "Patient type is required";
   }
 
+  if (values.patientType === "PAYING") {
+    const doctorId = Number(values.doctorId);
+
+    if (!values.doctorId || !Number.isInteger(doctorId) || doctorId <= 0) {
+      errors.doctorId = "Select a doctor for the paying patient";
+    }
+  }
+
   if (values.patientType === "INSURANCE") {
-    const insurance = values.insuranceDetail || emptyInsuranceDetail;
+    const insurance =
+      values.insuranceDetail || emptyInsuranceDetail;
 
     if (!insurance.provider?.trim()) {
-      errors["insuranceDetail.provider"] = "Insurance provider is required";
+      errors["insuranceDetail.provider"] =
+        "Insurance provider is required";
     }
 
     if (!insurance.policyNumber?.trim()) {
-      errors["insuranceDetail.policyNumber"] = "Policy number is required";
+      errors["insuranceDetail.policyNumber"] =
+        "Policy number is required";
     }
 
-    const coverageAmount = Number(insurance.coverageAmount);
+    const coverageAmount = Number(
+      insurance.coverageAmount,
+    );
+
     if (
       insurance.coverageAmount === "" ||
       !Number.isFinite(coverageAmount) ||
@@ -129,7 +159,8 @@ export function validatePatient(values) {
     }
 
     if (!insurance.expiryDate) {
-      errors["insuranceDetail.expiryDate"] = "Expiry date is required";
+      errors["insuranceDetail.expiryDate"] =
+        "Expiry date is required";
     } else if (
       !datePattern.test(insurance.expiryDate) ||
       !isValidCalendarDate(insurance.expiryDate)
@@ -153,6 +184,10 @@ export function toPatientPayload(values) {
     contactNumber: values.contactNumber.trim(),
     address: values.address.trim(),
     patientType: values.patientType,
+    doctorId:
+      values.patientType === "PAYING"
+        ? Number(values.doctorId)
+        : null,
     insuranceDetail: null,
   };
 
@@ -160,7 +195,9 @@ export function toPatientPayload(values) {
     payload.insuranceDetail = {
       provider: values.insuranceDetail.provider.trim(),
       policyNumber: values.insuranceDetail.policyNumber.trim(),
-      coverageAmount: Number(values.insuranceDetail.coverageAmount),
+      coverageAmount: Number(
+        values.insuranceDetail.coverageAmount,
+      ),
       expiryDate: values.insuranceDetail.expiryDate,
     };
   }

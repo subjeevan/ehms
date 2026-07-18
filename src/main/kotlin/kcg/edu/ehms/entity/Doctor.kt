@@ -28,5 +28,8 @@ class Doctor(
         joinColumns = [JoinColumn(name = "doctor_id")],
         inverseJoinColumns = [JoinColumn(name = "department_id")]
     )
-    var departments: MutableSet<Department> = mutableSetOf()
+    var departments: MutableSet<Department> = mutableSetOf(),
+
+    @OneToMany(mappedBy = "assignedDoctor", fetch = FetchType.LAZY)
+    var assignedPatients: MutableSet<Patient> = mutableSetOf()
 )

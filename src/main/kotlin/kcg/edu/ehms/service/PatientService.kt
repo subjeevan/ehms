@@ -9,6 +9,7 @@ import kcg.edu.ehms.exception.BusinessValidationException
 import kcg.edu.ehms.exception.DuplicateEntryException
 import kcg.edu.ehms.exception.ResourceNotFoundException
 import kcg.edu.ehms.repository.BillRepository
+import kcg.edu.ehms.repository.DoctorRepository
 import kcg.edu.ehms.repository.InsuranceDetailRepository
 import kcg.edu.ehms.repository.PatientRepository
 import kcg.edu.ehms.specification.PatientSpecifications
@@ -17,14 +18,16 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.time.LocalDate
 import java.math.BigDecimal
+import java.time.LocalDate
+
 @Service
 class PatientService(
     private val patientRepository: PatientRepository,
     private val insuranceDetailRepository: InsuranceDetailRepository,
     private val billRepository: BillRepository,
-    private val patientTypeChargeService: PatientTypeChargeService
+    private val patientTypeChargeService: PatientTypeChargeService,
+    private val doctorRepository: DoctorRepository
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
     private val allowedSorts = setOf("id", "fullName", "gender", "dateOfBirth", "patientType", "registeredAt")
@@ -32,8 +35,11 @@ class PatientService(
     @Transactional
     fun create(request: PatientRequest, actor: String): PatientResponse {
         validateInsurance(request)
+        val assignedDoctor = resolveAssignedDoctor(request)
+
         val patient = Patient()
-        applyRequest(patient, request)
+        applyRequest(patient, request, assignedDoctor)
+
         val saved = patientRepository.save(patient)
         log.info("Patient {} created by {}", saved.id, actor)
         return saved.toResponse()
@@ -42,8 +48,11 @@ class PatientService(
     @Transactional
     fun createWithBilling(request: PatientRequest, actor: String): PatientRegistrationResponse {
         validateInsurance(request)
+        val assignedDoctor = resolveAssignedDoctor(request)
+
         val patient = Patient()
-        applyRequest(patient, request)
+        applyRequest(patient, request, assignedDoctor)
+
         val savedPatient = patientRepository.save(patient)
         log.info("Patient {} created by {}", savedPatient.id, actor)
 
@@ -65,9 +74,11 @@ class PatientService(
                 billType = BillType.REGISTRATION,
                 description = "Patient registration charge - ${savedPatient.patientType}"
             )
+
             val savedBill = billRepository.save(bill)
             savedPatient.bills.add(savedBill)
             patientRepository.save(savedPatient)
+
             log.info(
                 "Created registration bill {} for patient {} with amount {}",
                 savedBill.id,
@@ -122,7 +133,11 @@ class PatientService(
         val safeSort = sortBy.takeIf { it in allowedSorts } ?: "registeredAt"
         val direction = if (sortDir.equals("asc", true)) Sort.Direction.ASC else Sort.Direction.DESC
         val pageable = PageRequest.of(safePage, safeSize, Sort.by(direction, safeSort))
-        val result = patientRepository.findAll(PatientSpecifications.search(search), pageable).map { it.toResponse() }
+
+        val result = patientRepository
+            .findAll(PatientSpecifications.search(search), pageable)
+            .map { it.toResponse() }
+
         return PageResponse.from(result)
     }
 
@@ -132,8 +147,11 @@ class PatientService(
     @Transactional
     fun update(id: Long, request: PatientRequest, actor: String): PatientResponse {
         validateInsurance(request, id)
+        val assignedDoctor = resolveAssignedDoctor(request)
+
         val patient = find(id)
-        applyRequest(patient, request)
+        applyRequest(patient, request, assignedDoctor)
+
         val saved = patientRepository.save(patient)
         log.info("Patient {} updated by {}", id, actor)
         return saved.toResponse()
@@ -156,37 +174,85 @@ class PatientService(
                 mapOf("insuranceDetail" to "Insurance details are required for insurance patients")
             )
         }
+
         val detail = request.insuranceDetail ?: return
+
         if (request.patientType != PatientType.INSURANCE) {
             throw BusinessValidationException(
                 "Insurance information is not applicable",
                 mapOf("insuranceDetail" to "Insurance details are only allowed for insurance patients")
             )
         }
-        val currentInsuranceId = patientId?.let { patientRepository.findById(it).orElse(null)?.insuranceDetail?.id }
+
+        val currentInsuranceId = patientId
+            ?.let { patientRepository.findById(it).orElse(null)?.insuranceDetail?.id }
+
         val duplicate = if (currentInsuranceId == null) {
             insuranceDetailRepository.existsByPolicyNumber(detail.policyNumber.trim())
         } else {
-            insuranceDetailRepository.existsByPolicyNumberAndIdNot(detail.policyNumber.trim(), currentInsuranceId)
+            insuranceDetailRepository.existsByPolicyNumberAndIdNot(
+                detail.policyNumber.trim(),
+                currentInsuranceId
+            )
         }
-        if (duplicate) throw DuplicateEntryException("Insurance policy number already exists")
+
+        if (duplicate) {
+            throw DuplicateEntryException("Insurance policy number already exists")
+        }
     }
 
-    private fun applyRequest(patient: Patient, request: PatientRequest) {
+    private fun resolveAssignedDoctor(request: PatientRequest): Doctor? {
+        if (request.patientType != PatientType.PAYING) {
+            if (request.doctorId != null) {
+                throw BusinessValidationException(
+                    "Doctor selection is not applicable",
+                    mapOf("doctorId" to "A doctor can only be assigned to a paying patient")
+                )
+            }
+            return null
+        }
+
+        val doctorId = request.doctorId
+            ?: throw BusinessValidationException(
+                "Doctor selection is required",
+                mapOf("doctorId" to "Select a doctor for the paying patient")
+            )
+
+        val doctor = doctorRepository.findById(doctorId)
+            .orElseThrow { ResourceNotFoundException("Selected doctor was not found") }
+
+        if (doctor.departments.isEmpty()) {
+            throw BusinessValidationException(
+                "Doctor department is required",
+                mapOf("doctorId" to "The selected doctor must be linked to a department in Setup")
+            )
+        }
+
+        return doctor
+    }
+
+    private fun applyRequest(
+        patient: Patient,
+        request: PatientRequest,
+        assignedDoctor: Doctor?
+    ) {
         patient.fullName = request.fullName.trim()
         patient.gender = request.gender!!
         patient.dateOfBirth = request.dateOfBirth!!
         patient.contactNumber = request.contactNumber.trim()
         patient.address = request.address.trim()
         patient.patientType = request.patientType!!
+        patient.assignedDoctor = assignedDoctor
 
         if (request.patientType == PatientType.INSURANCE) {
             val req = request.insuranceDetail!!
             val detail = patient.insuranceDetail ?: InsuranceDetail()
+
             detail.provider = req.provider.trim()
             detail.policyNumber = req.policyNumber.trim()
             detail.coverageAmount = req.coverageAmount!!
             detail.expiryDate = req.expiryDate!!
+
             patient.insuranceDetail = detail
         } else {
             patient.insuranceDetail = null
@@ -207,8 +273,24 @@ class PatientService(
             address = address,
             patientType = patientType,
             registeredAt = registeredAt,
+            assignedDoctor = assignedDoctor?.let { doctor ->
+                AssignedDoctorResponse(
+                    id = doctor.id!!,
+                    fullName = doctor.fullName,
+                    specialization = doctor.specialization,
+                    departments = doctor.departments
+                        .sortedBy { it.name }
+                        .map { it.name }
+                )
+            },
             insuranceDetail = insuranceDetail?.let {
-                InsuranceDetailResponse(it.id!!, it.provider, it.policyNumber, it.coverageAmount, it.expiryDate)
+                InsuranceDetailResponse(
+                    it.id!!,
+                    it.provider,
+                    it.policyNumber,
+                    it.coverageAmount,
+                    it.expiryDate
+                )
             },
             amountPaid = amountPaid
         )
