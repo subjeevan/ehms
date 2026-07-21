@@ -95,34 +95,25 @@ JWT_SECRET=your_generated_jwt_secret
 
 ---
 
-## 6. Run the Backend
+## 6. Run the Frotend and backend
+When you run the development server using npm run dev it will automatically start both frontend and backend
 
-1. Install the **EnvFile** plugin in IntelliJ IDEA.
-2. Enable the `.env` file in the Run Configuration.
-3. Run `EhmsApplication.kt`.
-
-
-## 7. Run the Frontend
-
-Open a terminal inside the frontend folder.
-
-Install dependencies:
-
+Install dependencies inside frontend folder:
 ```bash
 npm install
 ```
 
-Start the development server:
-
+Start the development server from core folder:
 ```bash
 npm run dev
 ```
-npm install -g concurrently
-Open:
 
+Open:
 - Backend: http://localhost:8080
 - Frontend: http://localhost:3000
-example :-> 
+example :->
+E:\ehms\cd frontend
 E:\ehms\frontend>npm install
-E:\ehms\frontend>npm run dev
+E:\ehms\frontend>cd ..
+E:\ehms\npm run dev
 
