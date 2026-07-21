@@ -32,7 +32,9 @@ Open cmd and run -> mvnw.cmd clean install
 2. Start **Apache** and **MySQL**.
 3. Open **http://localhost/phpmyadmin**.
 4. Click **New**.
-5. Create a database using:
+5. Create a database method:
+
+Method 1:-> Creating manually the database and username and password. On the first run, Spring Boot will automatically create all database tables and insert the initial system data.
 
 CREATE DATABASE IF NOT EXISTS ehms
 CHARACTER SET utf8mb4
@@ -50,6 +52,21 @@ TO 'hms_user'@'localhost';
 -- Apply the changes
 FLUSH PRIVILEGES;
 
+Method 2 :-> SQL database Import method
+i) first download the ehms.sql in your computer which is in database folder
+ii) Import in mysql 
+iii) Create user and grant previlages 
+-- Create a dedicated application user
+CREATE USER IF NOT EXISTS 'hms_user'@'localhost'
+IDENTIFIED BY 'password123';
+
+-- Grant privileges to the user
+GRANT ALL PRIVILEGES
+ON ehms.*
+TO 'hms_user'@'localhost';
+
+-- Apply the changes
+FLUSH PRIVILEGES;
 
 ## 4. Generate a JWT Secret
 
@@ -84,9 +101,6 @@ JWT_SECRET=your_generated_jwt_secret
 2. Enable the `.env` file in the Run Configuration.
 3. Run `EhmsApplication.kt`.
 
-Note for SQL database :-> Option 1) On the first run, Spring Boot will automatically create all database tables and insert the initial system data.
-Option 2) you can import the database named ehms.sql inside project folder before running the ehmsApplication.kt as well
----
 
 ## 7. Run the Frontend
 
