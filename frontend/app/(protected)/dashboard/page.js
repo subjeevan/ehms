@@ -184,25 +184,23 @@ function EarningsBreakdown({ values }) {
 
 function StatusGenderBreakdown({ label, values }) {
   return (
-    <div>
-      <div className="summary-card-top">
-        <span className="muted">{label}</span>
-        <strong>{values.total}</strong>
+      <div className="patient-status-row">
+        <span className="patient-status-label">{label}</span>
+
+        <span className="patient-status-value">
+        {values.male}
+      </span>
+
+        <span className="patient-status-value">
+        {values.female}
+      </span>
+
+        <strong className="patient-status-total">
+          {values.total}
+        </strong>
       </div>
-      <div className="gender-split">
-        <div>
-          <span>Male</span>
-          <strong>{values.male}</strong>
-        </div>
-        <div>
-          <span>Female</span>
-          <strong>{values.female}</strong>
-        </div>
-      </div>
-    </div>
   );
 }
-
 export default function DashboardPage() {
   const { ready, isAdmin } = useAuth();
   const [summary, setSummary] = useState(emptySummary);

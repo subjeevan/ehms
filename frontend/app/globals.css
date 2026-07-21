@@ -306,3 +306,86 @@ td small { color: var(--muted); margin-top: .2rem; }
     grid-template-columns: 1fr;
   }
 }
+.compact-patient-card {
+  padding: 18px 22px;
+  min-height: auto;
+}
+
+.compact-card-title {
+  margin-bottom: 14px;
+}
+
+.compact-card-title h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.patient-status-table {
+  display: grid;
+  gap: 0;
+}
+
+.patient-status-header,
+.patient-status-row {
+  display: grid;
+  grid-template-columns:
+    minmax(90px, 1.4fr)
+    minmax(45px, 0.65fr)
+    minmax(55px, 0.65fr)
+    minmax(45px, 0.65fr);
+  align-items: center;
+  column-gap: 10px;
+}
+
+.patient-status-header {
+  padding: 0 8px 7px;
+  color: var(--muted, #607b82);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.patient-status-header span:first-child {
+  text-align: left;
+}
+
+.patient-status-row {
+  padding: 10px 8px;
+  border-top: 1px solid rgba(15, 107, 120, 0.1);
+}
+
+.patient-status-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.patient-status-value,
+.patient-status-total {
+  text-align: center;
+  font-size: 1rem;
+}
+
+.patient-status-total {
+  font-weight: 800;
+  color: #092f3a;
+}
+
+/* Make the whole three-card section shorter */
+.summary-grid {
+  align-items: start;
+}
+
+@media (max-width: 700px) {
+  .compact-patient-card {
+    padding: 16px;
+  }
+
+  .patient-status-header,
+  .patient-status-row {
+    grid-template-columns:
+      minmax(78px, 1.3fr)
+      repeat(3, minmax(38px, 0.6fr));
+    column-gap: 6px;
+  }
+}
